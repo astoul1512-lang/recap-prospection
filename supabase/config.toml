@@ -1,16 +1,16 @@
 # Configuration Supabase CLI — Récap prospection
 project_id = "mwbwgnulwfyuqgdgwhqg"
 
+# N'inscrire ici QUE les fonctions dont le code existe : `supabase functions
+# deploy` déploie tout ce qui est déclaré et échoue sur un dossier manquant.
+# Les suivantes seront rajoutées en même temps que leur code.
+
 [functions.ringover-webhook]
 verify_jwt = false      # signature HS512 vérifiée dans la fonction
 
-[functions.classify]
-verify_jwt = true
-[functions.summarize]
-verify_jwt = true
-[functions.reconcile]
-verify_jwt = true
-[functions.notify-slack]
-verify_jwt = true
 [functions.admin]
 verify_jwt = true
+
+# Lot 1 : classify, summarize, reconcile — lot 2 : notify-slack.
+# verify_jwt vaut true par défaut : ne jamais le passer à false ailleurs
+# qu'au-dessus, pour ringover-webhook (contrôle n°8 de scripts/verifier.sh).
