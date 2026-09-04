@@ -1,0 +1,19 @@
+{
+  "name": "Récap prospection",
+  "short_name": "Récap",
+  "description": "Monitoring des appels de prospection du Cabinet Ekinox",
+  "lang": "fr",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#ffffff",
+  "icons": [
+    {
+      "src": "icons/icone.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

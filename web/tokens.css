@@ -1,0 +1,44 @@
+/* Récap prospection — design « Registre » : jetons de design (source de vérité)
+   Fond papier, titres en serif Newsreader, interface en Instrument Sans,
+   un seul accent (vert sapin) réservé à ce qui compte. Thèmes clair et sombre. */
+
+:root{
+  color-scheme:light;
+  --ground:#f6f3ec; --surface:#fbf9f4; --surface-2:#ece7db; --surface-3:#f1ede4; --hair:#d9d3c6; --hair-2:#cfc8b9;
+  --ink:#1e1b16; --ink-2:#5a554b; --muted:#8a8377;
+  --accent:#2f5d50; --accent-ink:#244a40; --accent-soft:#dcefe3; --accent-soft-2:#eef4ef;
+  --warn:#8a5a00; --warn-soft:#fff1cf; --crit:#8f3f1c; --crit-soft:#f6e3da; --good:#1f5a3a; --good-soft:#dcefe3;
+  --bar:#2f5d50; --bar-2:#a8c9bb; --shadow:0 12px 32px -20px rgba(30,27,22,.45);
+  --font-ui:"Instrument Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --font-display:"Newsreader",Georgia,serif;
+  --radius:6px; --radius-lg:8px;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --ground:#16140f; --surface:#1e1b15; --surface-2:#2a261e; --surface-3:#231f18; --hair:#332e25; --hair-2:#453f34;
+    --ink:#efeae0; --ink-2:#bdb6a8; --muted:#8a8377;
+    --accent:#6fb59f; --accent-ink:#8fcbb7; --accent-soft:#1f3a32; --accent-soft-2:#1b2b26;
+    --warn:#e2b45a; --warn-soft:#3a2c0f; --crit:#f0987a; --crit-soft:#3f2318; --good:#7fcb9d; --good-soft:#1f3a2b;
+    --bar:#6fb59f; --bar-2:#33544a; --shadow:0 12px 32px -20px rgba(0,0,0,.8);
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --ground:#16140f; --surface:#1e1b15; --surface-2:#2a261e; --surface-3:#231f18; --hair:#332e25; --hair-2:#453f34;
+  --ink:#efeae0; --ink-2:#bdb6a8; --muted:#8a8377;
+  --accent:#6fb59f; --accent-ink:#8fcbb7; --accent-soft:#1f3a32; --accent-soft-2:#1b2b26;
+  --warn:#e2b45a; --warn-soft:#3a2c0f; --crit:#f0987a; --crit-soft:#3f2318; --good:#7fcb9d; --good-soft:#1f3a2b;
+  --bar:#6fb59f; --bar-2:#33544a; --shadow:0 12px 32px -20px rgba(0,0,0,.8);
+}
+
+/* Échelle typographique */
+/* h1 38px (30 mobile) · h2 22px · titres de carte 22px serif · corps 14px · petits 12–12.5px · étiquettes 11px majuscules espacées .08em */
+/* Chiffres : font-variant-numeric: tabular-nums partout où des nombres s'alignent */
+
+/* Couleurs sémantiques des situations (pastilles) :
+   rdv, client        -> good   (fond --good-soft, texte --good)
+   ouvert, porte      -> acc    (fond --accent-soft, texte --accent-ink)
+   relance, nosum, aq -> warn
+   direct, bache      -> crit
+   besoin             -> neu    (fond --surface-2, texte --ink-2)                       */

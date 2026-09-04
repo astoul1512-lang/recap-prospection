@@ -1,0 +1,63 @@
+/* Récap prospection — feuille de style de l'application.
+   Au lot 0, elle ne couvre que la page d'attente : les composants du prototype
+   (.btn, .chip, .card, .kboard…) arrivent au lot 1, repris de design/prototype.html.
+   Aucun style en ligne nulle part : la politique de sécurité du contenu (CSP)
+   interdit les attributs style, et c'est voulu. */
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  min-height: 100%;
+  background: var(--ground);
+  color: var(--ink);
+  font-family: var(--font-ui);
+  font-size: 14px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+
+.attente {
+  max-width: 34rem;
+  margin: 0 auto;
+  padding: 18vh 24px 48px;
+}
+
+.attente .eyebrow {
+  margin: 0 0 14px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.attente h1 {
+  margin: 0 0 18px;
+  font-family: var(--font-display);
+  font-size: 38px;
+  font-weight: 400;
+  line-height: 1.15;
+  letter-spacing: -.01em;
+}
+
+.attente .chapeau {
+  margin: 0 0 32px;
+  max-width: 30rem;
+  color: var(--ink-2);
+  font-size: 15px;
+}
+
+.attente .pied {
+  margin: 0;
+  padding-top: 18px;
+  border-top: 1px solid var(--hair);
+  color: var(--muted);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 640px) {
+  .attente { padding-top: 12vh; }
+  .attente h1 { font-size: 30px; }
+}

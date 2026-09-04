@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Récap prospection">
+  <rect width="512" height="512" rx="96" fill="#2f5d50"/>
+  <g fill="none" stroke="#f6f3ec" stroke-width="26" stroke-linecap="round">
+    <path d="M150 132v248"/>
+    <path d="M150 132h150a58 58 0 0 1 0 116H150"/>
+    <path d="M262 248l100 132"/>
+  </g>
+  <g fill="#a8c9bb">
+    <circle cx="366" cy="140" r="16"/>
+    <circle cx="366" cy="188" r="16"/>
+  </g>
+</svg>
