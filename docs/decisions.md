@@ -288,3 +288,72 @@ dans la fiche appel, chacune est corrigeable, et l'écran d'administration dit
 quand la tâche est passée pour la dernière fois. À surveiller la première
 semaine — en particulier le nombre d'appels qu'elle laisse en file, qui est le
 bon indicateur de sa prudence.
+
+---
+
+## D7 — Les transcriptions viennent de l'API Ringover, et sont stockées en base
+
+**Décidé le 4 septembre 2026, par Adrien. Remplace la source prévue par D1.**
+
+### Ce que disaient D1 et D6
+
+Que la matière des résumés venait de **Modjo**, et que la routine planifiée
+irait l'y chercher par son connecteur.
+
+### Pourquoi c'était une erreur
+
+Deux raisons, l'une factuelle, l'autre documentée depuis juillet.
+
+**La première :** le compte Ringover d'Ekinox a l'option de transcription
+active. Le skill de préqualification du cabinet l'utilise en production depuis
+juillet 2026 (`get_transcription`, statut `DONE`, `transcription_data.speeches[]`).
+Il n'y a donc jamais eu besoin d'un tiers pour obtenir le texte des appels.
+
+**La seconde :** ce même skill note noir sur blanc pourquoi Modjo n'est pas
+utilisé — *« couverture partielle, et contient les visios hors périmètre »* —
+et signale un piège d'identification daté du 24 juillet 2026 : *« Modjo expose
+des outils aux noms proches (`get_calls`, `get_transcript`) — ce n'est pas
+Ringover. »*
+
+C'est exactement dans ce piège que la mise en place de D1 et D6 est tombée : le
+connecteur interrogé était Modjo, pas Ringover. La couverture partielle
+signifiait qu'une partie des appels de prospection n'aurait jamais eu de
+résumé, sans que rien ne l'explique.
+
+### Ce qui est fait
+
+Ringover reste la source ; la base en est la copie de travail.
+
+1. `fetch-transcript` interroge `GET /v2/transcriptions/{call_id}` toutes les
+   dix minutes, pour les appels de prospection décrochés d'au moins vingt
+   secondes des sept derniers jours. Six tentatives par appel, deux requêtes
+   par seconde, texte borné à 60 000 caractères.
+2. Le texte est assemblé depuis `speeches[]` — une réplique par ligne, avec
+   qui parle — et rangé dans `calls.transcript`, provenance `ringover_api`.
+3. `v_a_resumer` ne liste que les appels **qui ont leur transcription**. La
+   routine planifiée n'a donc plus qu'un seul endroit où regarder, et aucune
+   clé d'API à manipuler.
+4. `v_sans_transcription` compte ce qui attend, affiché sur l'écran
+   d'administration.
+
+### Pourquoi stocker plutôt que lire à la demande
+
+Parce que la routine tourne dans le cloud, sans accès aux secrets du projet. Et
+parce que l'équipe peut alors relire l'échange depuis la fiche appel, sans
+quitter l'application ni rouvrir Ringover.
+
+### Vérifié, pas supposé
+
+Sur onze appels réels : onze transcriptions récupérées, 653 à 32 526
+caractères, disponibles en moins de vingt minutes après la fin de l'appel. Le
+format exact et les codes de retour sont dans `docs/ringover-api.md`.
+
+Un défaut a été trouvé au passage, et il valait le détour : **l'endpoint
+renvoie un tableau JSON**, là où la documentation laissait attendre un objet.
+Un code qui attend un objet ne lit rien, ne lève aucune erreur, et conclut
+« pas encore prête » — il aurait attendu indéfiniment une transcription déjà
+arrivée. C'est la sonde posée dans la fonction qui l'a révélé, pas un test.
+
+### Ce que devient Modjo
+
+Un recours manuel, plus une dépendance. Aucun code ne l'appelle.

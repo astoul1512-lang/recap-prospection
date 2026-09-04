@@ -1,97 +1,127 @@
-# La tâche planifiée qui écrit les résumés et pose les tags
+# La routine qui écrit les résumés et pose les tags
 
-Pourquoi une tâche planifiée plutôt qu'une fonction serveur : `docs/decisions.md`,
-décision D1. Pourquoi elle qualifie aussi les appels courts : décision D6.
-Ce document-ci est son mode d'emploi.
+Pourquoi une routine planifiée plutôt qu'une fonction serveur :
+`docs/decisions.md`, décision D1. Pourquoi elle qualifie aussi les appels
+courts : D6. D'où vient la transcription : **D7**.
 
-Elle tourne **deux fois par jour, à 12 h 40 et à 20 h**, du lundi au vendredi.
-Le passage de midi traite la matinée ; celui du soir rattrape tout ce que Modjo
-n'avait pas encore indexé.
+Elle tourne **deux fois par jour, à 12 h 45 et à 20 h**, du lundi au vendredi,
+et elle est créée dans l'application Claude par Adrien.
 
-## Ce qu'elle fait à chaque passage
+**Elle n'a besoin que du connecteur Supabase.** Tout ce qu'elle lit est en
+base : plus de clé d'API, plus de rapprochement de numéros, plus de Modjo. Le
+texte des appels y est déposé toutes les dix minutes par la fonction
+`fetch-transcript`.
 
-1. **Demander le travail à faire.** La base expose une vue qui ne contient que
-   ce qui l'attend, et rien d'autre :
+---
 
-   ```sql
-   select * from public.v_a_resumer order by started_at desc;
-   ```
+## 1. Demander le travail à faire
 
-   La vue filtre déjà : prospection confirmée par Jarvi, décroché, vingt
-   secondes au moins, **sept derniers jours**, et aucun appel qu'un humain a
-   déjà touché. Deux colonnes disent ce qu'on attend : `sans_resume` (il manque
-   le résumé) et `needs_review` (il manque le tag). Souvent les deux.
+```sql
+select call_id, day, started_at, duration_s, direction,
+       company_name, contact_name, contact_role, user_name,
+       needs_review, review_reason, sans_resume, transcript
+from public.v_a_resumer
+order by started_at desc
+limit 40;
+```
 
-2. **Récupérer la conversation dans Modjo**, par le connecteur Modjo :
-   rapprochement sur le numéro (`external_number`) et l'heure de début
-   (`started_at`, à trois minutes près).
+La vue filtre déjà tout, et c'est elle qui protège le travail de l'équipe :
 
-   Modjo renvoie déjà un résumé rédigé : il suffit le plus souvent. La
-   transcription complète ne sert qu'aux cas où ce résumé est trop vague pour
-   trancher.
+- appels de prospection confirmés par le CRM, décrochés, vingt secondes au
+  moins ;
+- **qui ont leur transcription** — sans texte il n'y a rien à résumer ;
+- sept derniers jours ;
+- **aucun appel qu'un humain a déjà touché**, ni par la file, ni en corrigeant
+  un champ.
 
-3. **Rédiger**, dans les formes du récap :
-   - `summary` : 600 caractères maximum, cinq lignes au plus, en français, des
-     faits seulement — jamais une impression, jamais une extrapolation ;
-   - `next_step` : 160 caractères maximum, à l'impératif, une action concrète,
-     datée si c'est une relance.
+Ne jamais la court-circuiter par une requête directe sur `public.calls`.
 
-   Nommer le décideur et le besoin quand ils sont dits. **Ne jamais mentionner
-   un candidat** : le rapport de prospection ne parle que de clients.
+Deux colonnes disent ce qu'on attend : `sans_resume` (il manque le résumé) et
+`needs_review` (il manque le tag). Souvent les deux.
 
-4. **Poser le tag** — une seule situation, et l'issue qui va avec :
+S'il n'y a aucune ligne, passer directement à l'étape 3.
 
-   | Ce que dit la conversation | `situation` | `outcome` |
-   |---|---|---|
-   | Rendez-vous pris ou accepté | `rdv` | `rdv` |
-   | Décideur ouvert, besoin à venir | `ouvert` | `conversation` |
-   | Il nomme la bonne personne à appeler | `porte` | `conversation` |
-   | Client actif, point d'étape | `client` | `conversation` |
-   | Recrute en direct, pas de cabinet | `direct` | `conversation` |
-   | Pas de besoin, déjà couvert | `besoin` | `conversation` |
-   | Demande à être rappelé plus tard | `relance` | `conversation` |
-   | Refus sec, sans échange | `bache` | `bache` |
-   | Rien : erreur de numéro, mise en attente, standard | *aucune* | `tentative` |
+## 2. Rédiger, taguer, écrire
 
-   La dernière ligne compte autant que les autres : un appel où il ne s'est
-   rien passé doit sortir de la file, avec une phrase qui le dit.
+La colonne `transcript` contient l'échange, une réplique par ligne, préfixée
+par `Collaborateur :` ou `Interlocuteur :`.
 
-   **Le droit de ne pas trancher est une règle, pas une échappatoire.** Devant
-   une conversation ambiguë : écrire le résumé, ne pas toucher au tag, ne pas
-   toucher à `needs_review`. L'appel reste dans la file pour un humain. Mieux
-   vaut une question posée qu'un tag inventé.
+**Le résumé.**
 
-5. **Réécrire dans la base**, appel par appel :
+- `summary` : 600 caractères maximum, cinq lignes au plus, en français, **des
+  faits seulement**. Jamais une impression, jamais une extrapolation. Nommer le
+  décideur et le besoin quand ils sont dits. Dater les relances.
+- `next_step` : 160 caractères maximum, à l'impératif, une action concrète.
+  Vide s'il n'y a rien à faire.
 
-   ```sql
-   update public.calls
-      set summary = $r$…$r$, next_step = $e$…$e$,
-          situation = '…', outcome = '…',
-          needs_review = false, review_reason = null,
-          transcript_source = 'modjo'
-    where call_id = '…';
-   ```
+**Interdit absolu : ne jamais mentionner un candidat.** Ce rapport ne parle que
+de clients et de prospects. Si la conversation évoque des candidats, n'en
+retenir que ce qui concerne le besoin du client.
 
-   Guillemet-dollar obligatoire pour les textes : les résumés contiennent des
-   apostrophes. `needs_review = false` seulement si le tag a été tranché.
+**Le tag** — une seule situation, et l'issue qui va avec :
 
-   **Jamais dans `kind_manual` ni `outcome_manual`** : ces deux colonnes sont
-   réservées aux humains, et ce sont elles qui priment sur la tâche.
+| Ce que dit la conversation | `situation` | `outcome` |
+|---|---|---|
+| Rendez-vous pris ou accepté | `rdv` | `rdv` |
+| Décideur ouvert, besoin à venir | `ouvert` | `conversation` |
+| Il nomme la bonne personne à appeler | `porte` | `conversation` |
+| Client actif, point d'étape | `client` | `conversation` |
+| Recrute en direct, pas de cabinet | `direct` | `conversation` |
+| Pas de besoin, déjà couvert | `besoin` | `conversation` |
+| Demande à être rappelé plus tard | `relance` | `conversation` |
+| Refus sec, sans échange | `bache` | `bache` |
+| Rien : erreur de numéro, mise en attente, standard | *aucune* | `tentative` |
 
-6. **Signer son passage** — c'est la partie qu'on est tenté de sauter, et c'est
-   la plus importante :
+La dernière ligne compte autant que les autres : un appel où il ne s'est rien
+passé doit sortir de la file, avec une phrase qui le dit.
 
-   ```sql
-   select public.note_job_run('resumes', jsonb_build_object(
-     'traites', <appels résumés>,
-     'qualifies', <appels sortis de la file>,
-     'laisses_en_file', <appels non tranchés>,
-     'sans_transcription', <appels absents de Modjo>,
-     'passage', 'midi' | 'soir'));
-   ```
+**Le droit de ne pas trancher est une règle, pas une échappatoire.** Devant une
+conversation ambiguë : écrire le résumé, ne pas toucher au tag, ne pas toucher
+à `needs_review`. L'appel reste dans la file pour un humain. Mieux vaut une
+question posée qu'un tag inventé.
 
-   L'écran d'administration affiche cette date. Sans elle, une tâche morte
-   ressemble à une journée sans travail à faire.
+**L'écriture**, un appel à la fois :
+
+```sql
+update public.calls
+   set summary = $r$…$r$,
+       next_step = $e$…$e$,
+       situation = '…',          -- omettre la ligne si aucune situation
+       outcome = '…',
+       needs_review = false,     -- seulement si le tag a été tranché
+       review_reason = null,
+       transcript_source = 'ringover_api'
+ where call_id = '…';
+```
+
+Guillemet-dollar obligatoire pour les textes : les résumés contiennent des
+apostrophes, et une apostrophe non échappée casse la requête.
+
+**Jamais dans `kind_manual` ni `outcome_manual`** : ces deux colonnes sont
+réservées aux humains, et ce sont elles qui priment sur la routine.
+
+## 3. Signer le passage — ne jamais sauter cette étape
+
+```sql
+select public.note_job_run('resumes', jsonb_build_object(
+  'traites', <appels résumés>,
+  'qualifies', <appels sortis de la file>,
+  'laisses_en_file', <appels non tranchés>,
+  'candidats', <lignes renvoyées par la vue>,
+  'passage', 'midi'));          -- ou 'soir'
+```
+
+L'écran d'administration affiche cette date. Sans elle, une routine morte
+ressemble à une journée sans travail à faire.
+
+## 4. Rendre compte
+
+Un compte rendu court, en français simple, sans jargon : combien d'appels
+résumés, combien qualifiés, combien laissés à l'équipe et pourquoi. Signaler
+tout ce qui paraît anormal — une transcription vide, une situation impossible à
+trancher, un appel qui revient à chaque passage.
+
+---
 
 ## Les quatre règles à ne pas contourner
 
@@ -100,15 +130,15 @@ n'avait pas encore indexé.
    lendemain, et qu'une panne de trois jours se répare sans intervention. Ne
    jamais remplacer ce critère par une date.
 2. **Ne jamais écraser une correction humaine.** La vue les exclut déjà ; ne
-   pas la court-circuiter par une requête directe sur `calls`.
-3. **Ne traiter que ce qui le mérite.** La vue s'en charge : prospection,
-   décroché, vingt secondes au moins.
-4. **Rendre l'échec visible.** Signer chaque passage (point 6), y compris un
-   passage qui n'a rien trouvé à faire.
+   pas la court-circuiter.
+3. **Ne traiter que ce qui a une transcription.** La vue s'en charge. Sans
+   texte, résumer revient à inventer.
+4. **Rendre l'échec visible.** Signer chaque passage, y compris un passage qui
+   n'a rien trouvé à faire.
 
-## Quand un appel n'est pas dans Modjo
+## Quand un appel n'a pas de transcription
 
-Ne rien écrire. L'appel gardera l'étiquette « Résumé à compléter » dans
-l'application — ce qui est exact — et repassera dans la vue les jours suivants,
-au cas où Modjo l'indexerait plus tard. Après sept jours il en sortira de
-lui-même.
+Il n'apparaît pas dans `v_a_resumer` — il n'y a donc rien à faire. Il porte
+l'étiquette « Transcription en attente » dans l'application, et l'écran
+d'administration en donne le compte. Si ce nombre ne descend jamais, c'est la
+fonction `fetch-transcript` qu'il faut regarder, pas la routine.
