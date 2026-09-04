@@ -126,6 +126,24 @@ tort comme décroché. À trancher sur pièce.
 | §7.3 journal d'usage | écrire dans `corrections` depuis le front (`export`, `listen`) | policy d'insertion ajoutée en migration `20260903010000` | la migration initiale n'accordait que la lecture : ces écritures auraient échoué en silence. |
 | §3.3.6 sessions | expiration après 12 h d'inactivité | non appliqué | option réservée au forfait payant Supabase. À compenser côté application au lot 1 (déconnexion automatique). |
 
+## État de la checklist sécurité §8 à la clôture du lot 0 (4 septembre 2026)
+
+Vérifié sur l'environnement réel, pas sur relecture du code.
+
+| Ligne §8 | État | Preuve / ce qui manque |
+|---|---|---|
+| Inscription libre désactivée, trigger actif | ✅ partiel | Réglage fait ; `on_auth_user_check` (AVANT) et `on_auth_user_created` (APRÈS) présents et actifs ; chemin nominal validé (adresse invitée → compte + fiche `app_users` en rôle `admin`). **Le test négatif — adresse non invitée refusée — n'a pas pu être joué.** À faire au lot 1. |
+| RLS sur 100 % des tables, `private` non exposé, test négatif | ✅ | 8/8 tables en RLS ; `private` répond « schéma non exposé » ; avec la clé publishable et de vraies données en base (1 appel, 1 collaborateur), toutes les tables et vues renvoient `[]`. |
+| Membre inactif → 0 ligne ; trigger `calls_guard` | ⬜ | Impossible sans session utilisateur : il n'existe pas encore d'écran de connexion. **Lot 1.** |
+| Webhook : sans signature → 401 ; rejeu → 401 ; 20 invalides → 429 | ✅ partiel | POST non signé → **401** constaté en ligne ; méthode non autorisée → **405**. Rejeu et plafond non éprouvés en conditions réelles. **Écart assumé** : la spécification dit « rien en base », le code journalise au contraire l'événement refusé — c'est ce qui a permis de résoudre la ligne 1 de ce document. Volume borné (3 par IP et par fenêtre). |
+| `verify_jwt` correct sur chaque fonction | ✅ | Lu sur les fonctions déployées : `ringover-webhook` = false (voulu), `admin` = true. |
+| Secrets dans Supabase, absents du dépôt | ✅ partiel | Contrôle n°5 du vérificateur vert à chaque livraison ; `.env` ignoré. **Analyse anti-secrets GitHub et protection au push non vérifiées.** |
+| MFA active sur le compte admin | ⬜ | TOTP activé côté projet, mais l'inscription d'un facteur exige un écran applicatif. **Conséquence à connaître : `is_admin()` renvoie faux tant que ce n'est pas fait, donc la fonction `admin` est inutilisable.** Sans effet au lot 0 (amorçage fait en SQL). **Lot 1.** |
+| Audit Supabase sécurité à zéro | ⚠️ assumé | 5 signalements restants, tous justifiés : 3 tables en RLS **sans aucune policy** (état le plus fermé possible — « corriger » reviendrait à ouvrir) et 2 fonctions exécutables par les utilisateurs connectés (`is_active_user`, `is_admin`) — indispensable, les policies RLS les appellent. Corrigés en revanche : chemin de recherche de 3 fonctions, et accès anonyme aux 2 fonctions de contrôle. |
+| CSP en `<meta>` | ✅ | Présente dans `index.html`, servie en ligne. |
+| Purge pg_cron planifiée et testée | ⬜ | `purge_nightly` planifiée par la migration initiale ; jamais déclenchée. |
+| Parcours iPhone / Android | ⬜ | Sans objet : pas encore d'application. **Lot 1.** |
+
 ## Limites connues du lot 0
 
 - **Plafond des signatures invalides** (20 / 5 min / IP) : compté en mémoire dans
