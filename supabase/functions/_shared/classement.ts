@@ -26,6 +26,11 @@ export type AppelAClasser = {
 
 export type Genre = "prospection" | "hors_prospection" | "inconnu";
 
+// Une minute : la frontière entre « on a échangé » et « il faut trancher à la
+// main » (SPECS §1.1.4). Elle sert au webhook, à la réconciliation et à la
+// décision de classement — d'où sa place ici, en un seul exemplaire.
+export const SEUIL_CONVERSATION_S = 60;
+
 export type Classement = {
   kind: Genre;
   champs: Record<string, unknown>;

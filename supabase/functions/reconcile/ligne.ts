@@ -14,7 +14,7 @@ import {
   identifiant,
   type AppelRingover,
 } from "../_shared/ringover.ts";
-import { SEUIL_CONVERSATION_S } from "../ringover-webhook/plan.ts";
+import { SEUIL_CONVERSATION_S } from "../_shared/classement.ts";
 
 export function etiquettes(appel: AppelRingover): string[] {
   if (!Array.isArray(appel.tags)) return [];

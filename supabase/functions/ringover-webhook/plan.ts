@@ -4,6 +4,7 @@
 
 import { jourParis, versISO } from "../_shared/dates.ts";
 import { numeroExterneOuDefaut, sensRingover } from "../_shared/phone.ts";
+import { SEUIL_CONVERSATION_S } from "../_shared/classement.ts";
 
 export type Enveloppe = {
   event: string;
@@ -85,8 +86,6 @@ export function issueAutomatique(
 // On ne s'y fie que pour les appels de moins d'une minute : au-delà, une
 // conversation reconnue à tort comme répondeur serait une perte sèche, alors
 // qu'un répondeur écouté longtemps reste rattrapable à la main.
-export const SEUIL_CONVERSATION_S = 60;
-
 export function repondeurReconnu(data: Record<string, unknown>, dureeS: number | null): boolean {
   const detection = String(data.answering_machine_detection ?? "").toUpperCase();
   return detection === "MACHINE" && (dureeS ?? 0) < SEUIL_CONVERSATION_S;
