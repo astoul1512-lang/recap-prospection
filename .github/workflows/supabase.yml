@@ -1,0 +1,48 @@
+name: Supabase — migrations et edge functions
+
+on:
+  push:
+    branches: [main]
+    paths: ['supabase/**', 'scripts/**', '.github/workflows/supabase.yml']
+  workflow_dispatch:
+
+concurrency:
+  group: supabase-deploy
+  cancel-in-progress: false
+
+jobs:
+  controles:
+    name: Contrôles bloquants
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '20' }
+      - name: Vérifier (syntaxe, troncature, secrets, migrations, verify_jwt)
+        run: bash scripts/verifier.sh .
+      - uses: supabase/setup-cli@v1
+        with: { version: latest }
+      - name: Tests des edge functions
+        run: |
+          if ls supabase/functions/*/*_test.ts >/dev/null 2>&1; then
+            curl -fsSL https://deno.land/install.sh | sh
+            "$HOME/.deno/bin/deno" test --allow-all supabase/functions
+          else echo "aucun test encore"; fi
+
+  deploy:
+    name: Déployer (SQL d'abord, fonctions ensuite)
+    needs: controles
+    runs-on: ubuntu-latest
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+      PROJECT_ID: ${{ secrets.SUPABASE_PROJECT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with: { version: latest }
+      - run: supabase link --project-ref "$PROJECT_ID"
+      - name: 1. Migrations
+        run: supabase db push
+      - name: 2. Edge functions
+        run: supabase functions deploy --project-ref "$PROJECT_ID"

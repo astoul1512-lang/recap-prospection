@@ -1,0 +1,61 @@
+name: GitHub Pages — application web
+
+on:
+  push:
+    branches: [main]
+    paths: ['web/**', 'scripts/**', 'README.md', '.github/workflows/pages.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  controles:
+    name: Contrôles bloquants
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '20' }
+      - run: bash scripts/verifier.sh .
+
+  deploy:
+    name: Publier
+    needs: controles
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.ver.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: ver
+        run: echo "version=$(grep -o 'content=\"v[^\"]*\"' web/index.html | grep -o 'v[^\"]*')" >> "$GITHUB_OUTPUT"
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with: { path: web }
+      - id: deployment
+        uses: actions/deploy-pages@v4
+
+  verifier-en-ligne:
+    name: Vérifier que la version est servie
+    needs: deploy
+    runs-on: ubuntu-latest
+    steps:
+      - name: Attendre que Pages serve la bonne version (jusqu'à 5 min)
+        run: |
+          attendu="${{ needs.deploy.outputs.version }}"
+          for i in $(seq 1 10); do
+            servie=$(curl -fsSL "https://astoul1512-lang.github.io/recap-prospection/index.html?v=$RANDOM" | grep -o 'content="v[^"]*"' | grep -o 'v[^"]*' || true)
+            echo "essai $i : attendu=$attendu servie=${servie:-∅}"
+            [ "$servie" = "$attendu" ] && { echo "✓ $attendu en ligne"; exit 0; }
+            sleep 30
+          done
+          echo "✗ la version servie n'est pas $attendu"; exit 1

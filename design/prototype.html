@@ -1,0 +1,668 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Récap prospection</title>
+</head>
+<body>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&family=Instrument+Sans:wght@400;500;600&display=swap">
+<style>
+:root{
+  color-scheme:light;
+  --ground:#f6f3ec; --surface:#fbf9f4; --surface-2:#ece7db; --surface-3:#f1ede4; --hair:#d9d3c6; --hair-2:#cfc8b9;
+  --ink:#1e1b16; --ink-2:#5a554b; --muted:#8a8377;
+  --accent:#2f5d50; --accent-ink:#244a40; --accent-soft:#dcefe3; --accent-soft-2:#eef4ef;
+  --warn:#8a5a00; --warn-soft:#fff1cf; --crit:#8f3f1c; --crit-soft:#f6e3da; --good:#1f5a3a; --good-soft:#dcefe3;
+  --bar:#2f5d50; --bar-2:#a8c9bb; --shadow:0 12px 32px -20px rgba(30,27,22,.45);
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --ground:#16140f; --surface:#1e1b15; --surface-2:#2a261e; --surface-3:#231f18; --hair:#332e25; --hair-2:#453f34;
+    --ink:#efeae0; --ink-2:#bdb6a8; --muted:#8a8377;
+    --accent:#6fb59f; --accent-ink:#8fcbb7; --accent-soft:#1f3a32; --accent-soft-2:#1b2b26;
+    --warn:#e2b45a; --warn-soft:#3a2c0f; --crit:#f0987a; --crit-soft:#3f2318; --good:#7fcb9d; --good-soft:#1f3a2b;
+    --bar:#6fb59f; --bar-2:#33544a; --shadow:0 12px 32px -20px rgba(0,0,0,.8);
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --ground:#16140f; --surface:#1e1b15; --surface-2:#2a261e; --surface-3:#231f18; --hair:#332e25; --hair-2:#453f34;
+  --ink:#efeae0; --ink-2:#bdb6a8; --muted:#8a8377;
+  --accent:#6fb59f; --accent-ink:#8fcbb7; --accent-soft:#1f3a32; --accent-soft-2:#1b2b26;
+  --warn:#e2b45a; --warn-soft:#3a2c0f; --crit:#f0987a; --crit-soft:#3f2318; --good:#7fcb9d; --good-soft:#1f3a2b;
+  --bar:#6fb59f; --bar-2:#33544a; --shadow:0 12px 32px -20px rgba(0,0,0,.8);
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+#app{container:app / inline-size;min-height:100vh}
+.devtoggle{position:fixed;top:14px;right:14px;z-index:80;box-shadow:var(--shadow)}
+@media (max-width:900px){.btn.devtoggle{display:none}}
+body.phone{background:var(--surface-2)}
+body.phone #app{width:390px;height:844px;min-height:0;margin:28px auto;border:10px solid #1e1b16;border-radius:40px;overflow:auto;transform:translate(0);background:var(--ground);box-shadow:0 30px 60px -30px rgba(0,0,0,.6)}
+body.phone .toast{bottom:88px}
+body{margin:0;background:var(--ground);color:var(--ink);font-family:"Instrument Sans",system-ui,-apple-system,"Segoe UI",sans-serif;font-size:14px;line-height:1.45;-webkit-font-smoothing:antialiased}
+a{color:var(--accent-ink);text-decoration:none} a:hover{text-decoration:underline}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer}
+button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+input,select,textarea{font:inherit;color:var(--ink);background:var(--surface);border:1px solid var(--hair-2);border-radius:6px;padding:9px 12px}
+textarea{resize:vertical;min-height:80px}
+h1,h2,h3{font-family:"Newsreader",Georgia,serif;font-weight:500;margin:0;line-height:1.1;text-wrap:balance}
+.serif{font-family:"Newsreader",Georgia,serif}
+.num{font-variant-numeric:tabular-nums}
+.cap{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600}
+.pill{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;font-weight:600;padding:2px 9px;border-radius:999px;white-space:nowrap;line-height:1.6}
+.pill.neu{background:var(--surface-2);color:var(--ink-2)} .pill.good{background:var(--good-soft);color:var(--good)} .pill.warn{background:var(--warn-soft);color:var(--warn)} .pill.crit{background:var(--crit-soft);color:var(--crit)} .pill.acc{background:var(--accent);color:#fff}
+.pill.out{border:1px solid var(--hair-2);color:var(--ink-2)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:38px;padding:0 14px;border-radius:6px;border:1px solid var(--hair-2);background:var(--surface);color:var(--ink);font-weight:500;font-size:13.5px;white-space:nowrap}
+.btn:hover{border-color:var(--accent)} .btn.primary{background:var(--accent);border-color:var(--accent);color:#fff} .btn.primary:hover{filter:brightness(1.08)}
+.btn.sm{min-height:32px;padding:0 10px;font-size:13px} .btn.danger{color:var(--crit)}
+.btn svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.seg{display:inline-flex;border:1px solid var(--hair-2);border-radius:6px;overflow:hidden;background:var(--surface)}
+.seg button{padding:8px 14px;font-size:13px;font-weight:500;color:var(--ink-2);min-height:38px} .seg button[aria-pressed="true"]{background:var(--ink);color:var(--surface)}
+.chips{display:flex;gap:6px;flex-wrap:wrap} .chip{border:1px solid var(--hair-2);background:var(--surface);color:var(--ink-2);padding:6px 12px;border-radius:999px;font-size:13px;font-weight:500;min-height:34px}
+.chip[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:#fff}
+.card{background:var(--surface);border:1px solid var(--hair);border-radius:8px}
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(20px);background:var(--ink);color:var(--surface);padding:10px 16px;border-radius:8px;font-size:13.5px;opacity:0;transition:.25s;z-index:60;pointer-events:none;max-width:92vw}
+.toast.on{opacity:1;transform:translateX(-50%)}
+/* login */
+.login{min-height:100%;display:flex;align-items:stretch}
+.login .side{width:260px;background:var(--accent);color:#eef4ef;display:flex;flex-direction:column;justify-content:space-between;padding:32px 28px}
+.login .side .serif{font-size:30px;line-height:1.1;letter-spacing:-.01em}
+.login .form{flex:1;display:flex;flex-direction:column;justify-content:center;gap:20px;padding:40px;max-width:520px}
+.field{display:flex;flex-direction:column;gap:6px} .field label{font-size:12.5px;font-weight:600;color:var(--ink-2)}
+.field input{min-height:44px}
+.btn.lg{min-height:44px;font-weight:600}
+@container app (max-width:700px){.login{flex-direction:column}.login .side{width:auto;padding:22px 20px;gap:10px}.login .side .serif{font-size:24px}.login .form{padding:26px 20px}}
+/* shell */
+.shell{display:grid;grid-template-columns:224px minmax(0,1fr);min-height:100%}
+.rail{background:var(--surface-3);border-right:1px solid var(--hair);padding:22px 14px;display:flex;flex-direction:column;gap:6px;position:sticky;top:0;height:100vh}
+.brand{padding:4px 12px 18px} .brand .serif{font-size:22px} .brand small{display:block;font-size:12px;color:var(--muted)}
+.nav{display:flex;flex-direction:column;gap:2px}
+.nav a{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:6px;color:var(--ink-2);font-weight:500;min-height:40px}
+.nav a:hover{text-decoration:none;background:var(--surface-2)} .nav a[aria-current="page"]{background:var(--surface-2);color:var(--ink)}
+.nav svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
+.nav .badge{margin-left:auto;background:var(--crit);color:#fff;font-size:11px;padding:1px 7px;border-radius:999px}
+.me{margin-top:auto;display:flex;align-items:center;gap:10px;padding:12px 12px 0;border-top:1px solid var(--hair)}
+.av{width:28px;height:28px;border-radius:50%;background:var(--accent);color:#fff;display:inline-flex;align-items:center;justify-content:center;font-weight:600;font-size:11px;flex-shrink:0}
+.main{padding:26px 32px 80px;min-width:0}
+.tabs{display:none}
+@container app (max-width:900px){
+  .shell{grid-template-columns:minmax(0,1fr)}
+  .rail{display:none}
+  .main{padding:18px 16px 92px}
+  .tabs{position:fixed;left:0;right:0;bottom:0;display:flex;background:var(--surface);border-top:1px solid var(--hair);padding:4px 6px calc(6px + env(safe-area-inset-bottom));z-index:40}
+  .tabs a{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:8px 0 4px;font-size:10.5px;font-weight:600;color:var(--muted);min-height:48px;position:relative}
+  .tabs a[aria-current="page"]{color:var(--accent-ink)} .tabs a:hover{text-decoration:none}
+  .tabs svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+  .tabs .badge{position:absolute;top:4px;right:calc(50% - 22px);background:var(--crit);color:#fff;font-size:10px;padding:0 5px;border-radius:999px}
+}
+.head{display:flex;align-items:flex-end;justify-content:space-between;gap:18px;flex-wrap:wrap;margin-bottom:20px}
+.head h1{font-size:38px;letter-spacing:-.02em} .head .sub{color:var(--muted);font-size:13px;margin-top:6px}
+.toolbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+@container app (max-width:700px){.head h1{font-size:30px}}
+/* funnel */
+.funnel{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));border:1px solid var(--hair);border-radius:8px;background:var(--surface);overflow:hidden;margin-bottom:18px}
+.funnel button{display:flex;flex-direction:column;gap:5px;padding:16px 20px;text-align:left;border-right:1px solid var(--hair);min-height:44px}
+.funnel button:last-child{border-right:0;background:var(--accent-soft-2)}
+.funnel button:hover{background:var(--surface-3)} .funnel button[aria-pressed="true"]{box-shadow:inset 0 -3px 0 var(--accent)}
+.funnel .v{font-family:"Newsreader",Georgia,serif;font-size:40px;line-height:1;font-weight:500}
+.funnel .v small{font-family:"Instrument Sans",sans-serif;font-size:14px;color:var(--muted);font-weight:400;margin-left:6px}
+.funnel .d{font-size:12.5px;color:var(--ink-2)}
+@container app (max-width:700px){.funnel{grid-template-columns:1fr}.funnel button{flex-direction:row;align-items:center;gap:12px;border-right:0;border-bottom:1px solid var(--hair);padding:12px 16px}.funnel button:last-child{border-bottom:0}.funnel .v{font-size:28px;min-width:64px}.funnel .cap{flex:1}.funnel .d{display:none}}
+.kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:18px}
+.kpi{padding:12px 16px;display:flex;flex-direction:column;gap:2px} .kpi .v{font-family:"Newsreader",Georgia,serif;font-size:28px;line-height:1.1} .kpi .d{font-size:12px;color:var(--muted)}
+.kpi.alert{border-color:var(--crit)} .kpi.alert .cap{color:var(--crit)}
+@container app (max-width:700px){.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}}
+/* split */
+.split{display:grid;grid-template-columns:minmax(0,1fr) 330px;gap:18px;align-items:start} .split.nosel{grid-template-columns:minmax(0,1fr)}
+@container app (max-width:1100px){.split{grid-template-columns:minmax(0,1fr)}}
+.sect{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;margin-bottom:10px} .sect h2{font-size:22px} .sect .n{color:var(--muted);font-size:13px}
+.tbl{overflow-x:auto}
+table{border-collapse:collapse;width:100%}
+th{text-align:left;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600;padding:10px 12px;border-bottom:1px solid var(--hair);white-space:nowrap;background:var(--surface-3)}
+td{padding:11px 12px;border-bottom:1px solid var(--hair);vertical-align:top}
+tbody tr:last-child td{border-bottom:0}
+tr.row{cursor:pointer} tr.row:hover td{background:var(--surface-3)} tr.row.sel td{background:var(--surface-2)}
+td .s{display:block;font-size:12px;color:var(--muted)}
+.cards{display:none}
+@container app (max-width:700px){
+  .tbl.calls{display:none} .cards{display:flex;flex-direction:column}
+}
+/* detail */
+.detail{display:flex;flex-direction:column;gap:16px;padding:18px 20px;position:sticky;top:20px}
+.detail .title{font-size:24px}
+.grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 14px;font-size:13px}
+.grid2 .cap{font-size:10.5px;margin-bottom:1px}
+.opts{display:flex;gap:6px;flex-wrap:wrap}
+.opt{border:1px solid var(--hair-2);background:var(--surface);color:var(--ink-2);padding:8px 12px;border-radius:999px;font-size:13px;font-weight:600;min-height:38px}
+.opt[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:#fff}
+.hist{font-size:12px;color:var(--muted);border-top:1px solid var(--hair);padding-top:10px;display:flex;flex-direction:column;gap:4px}
+.empty{padding:40px 20px;text-align:center;color:var(--muted)}
+@container app (max-width:1100px){
+  .detail{position:fixed;inset:auto 0 0 0;max-height:88vh;overflow:auto;border-radius:14px 14px 0 0;box-shadow:0 -10px 40px -20px rgba(0,0,0,.5);z-index:50;transform:translateY(105%);transition:transform .25s}
+  .detail.open{transform:none;visibility:visible}
+  .detail:not(.open){visibility:hidden;pointer-events:none}
+  .backdrop{position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:45;display:none} .backdrop.open{display:block}
+}
+/* week chart */
+.wk{display:flex;flex-direction:column;gap:8px}
+.bars{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;align-items:end;height:200px;padding:0 4px}
+.bar{display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:6px;height:100%;position:relative;min-height:44px}
+.bar .stack{width:100%;max-width:64px;display:flex;flex-direction:column;justify-content:flex-end;height:100%;gap:2px}
+.bar .b1{background:var(--bar-2);border-radius:4px 4px 0 0} .bar .b2{background:var(--bar);border-radius:4px 4px 0 0}
+.bar:hover .tip{opacity:1}
+.tip{position:absolute;bottom:calc(100% + 4px);left:50%;transform:translateX(-50%);background:var(--ink);color:var(--surface);font-size:12px;padding:6px 10px;border-radius:6px;white-space:nowrap;opacity:0;pointer-events:none;transition:.15s;z-index:5}
+.bar .lbl{font-size:12px;color:var(--ink-2)} .bar.today .lbl{color:var(--accent-ink);font-weight:600}
+.legend{display:flex;gap:16px;font-size:12px;color:var(--ink-2)} .legend span{display:inline-flex;align-items:center;gap:6px} .legend i{width:10px;height:10px;border-radius:2px;display:inline-block}
+.delta{font-size:12px;font-weight:600} .delta.up{color:var(--good)} .delta.down{color:var(--crit)}
+/* qualify */
+.qcard{padding:22px 24px;display:flex;flex-direction:column;gap:16px;max-width:720px}
+.kbd{display:inline-block;font-family:ui-monospace,Menlo,monospace;font-size:11px;border:1px solid var(--hair-2);border-bottom-width:2px;border-radius:4px;padding:0 5px;color:var(--ink-2);background:var(--surface-3)}
+.progress{height:4px;background:var(--surface-2);border-radius:2px;overflow:hidden} .progress i{display:block;height:100%;background:var(--accent)}
+/* admin */
+.admin{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}
+@container app (max-width:900px){.admin{grid-template-columns:minmax(0,1fr)}}
+.admin .card{padding:16px 18px;display:flex;flex-direction:column;gap:12px}
+.admin h2{font-size:20px}
+.row2{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.switch{width:38px;height:22px;border-radius:999px;background:var(--hair-2);position:relative;flex-shrink:0} .switch::after{content:"";position:absolute;top:3px;left:3px;width:16px;height:16px;border-radius:50%;background:#fff;transition:.15s}
+.switch[aria-checked="true"]{background:var(--accent)} .switch[aria-checked="true"]::after{left:19px}
+.led{width:9px;height:9px;border-radius:50%;display:inline-block;background:var(--good)} .led.warn{background:var(--warn)} .led.crit{background:var(--crit)}
+/* modal */
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.4);display:none;align-items:center;justify-content:center;z-index:70;padding:16px} .modal.open{display:flex}
+.modal .box{background:var(--surface);border-radius:10px;max-width:720px;width:100%;max-height:85vh;display:flex;flex-direction:column;gap:12px;padding:20px}
+.modal pre{font-size:12px;overflow:auto;background:var(--surface-3);padding:12px;border-radius:6px;margin:0;max-height:50vh}
+.foot{margin-top:40px;font-size:12px;color:var(--muted);display:flex;gap:14px;flex-wrap:wrap}
+.sr{position:absolute;left:-9999px}
+
+.kboard{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px;align-items:start}
+.kcol{display:flex;flex-direction:column;gap:8px;min-width:0}
+.kcolh{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:0;padding:8px 12px;border-radius:6px;font-family:"Instrument Sans",sans-serif;font-size:12.5px;font-weight:600}
+.kcolh b{font-family:"Newsreader",Georgia,serif;font-size:20px;font-weight:500}
+.kcolh.good{background:var(--good-soft);color:var(--good)} .kcolh.acc{background:var(--accent-soft);color:var(--accent-ink)} .kcolh.crit{background:var(--crit-soft);color:var(--crit)} .kcolh.warn{background:var(--warn-soft);color:var(--warn)}
+.kc{background:var(--surface);border:1px solid var(--hair);border-radius:8px;display:flex;flex-direction:column;gap:6px;padding:12px 14px 10px}
+.kc.sel{background:var(--surface-2);border-color:var(--accent)} .kc.aq{border-style:dashed}
+.kcbtn{display:flex;flex-direction:column;gap:4px;text-align:left;width:100%}
+.kct{font-weight:600;font-size:14px} .kcs{font-size:12px;color:var(--muted)}
+.kcsum{font-size:12.5px;color:var(--ink-2);display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden;margin-top:2px}
+.kcnx{font-size:12px;color:var(--accent-ink);font-weight:600}
+.kcf{display:flex;align-items:center;gap:8px;font-size:11.5px;color:var(--muted);flex-wrap:wrap;border-top:1px solid var(--hair);padding-top:8px;margin-top:2px}
+.kcf .acts{margin-left:auto} .kcf .act{width:28px;height:28px}
+.kempty{border:1px dashed var(--hair-2);border-radius:8px;padding:14px;text-align:center;color:var(--muted);font-size:12.5px}
+.split:not(.nosel) .kboard{grid-template-columns:repeat(3,minmax(0,1fr))}
+@container app (max-width:1250px){.kboard{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@container app (max-width:900px){.kboard,.split:not(.nosel) .kboard{grid-template-columns:minmax(0,1fr)}.kcsum{-webkit-line-clamp:3}}
+
+.xt td.sumcell{min-width:340px;font-size:13px;color:var(--ink-2)} .xt td.nxcell{min-width:170px;max-width:240px;font-size:12.5px;color:var(--accent-ink);font-weight:600} .xt th{white-space:nowrap}
+.xrow .xmain{padding-right:124px} .xacts{position:absolute;right:12px;top:10px}
+.period{display:flex;flex-wrap:wrap;gap:0;padding:0;overflow:hidden}
+.pblock{display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding:10px 14px;flex:1;min-width:0}
+.pblock+.pblock{border-left:1px solid var(--hair)}
+.pblock.on{background:var(--surface-3)}
+.plabel{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600;margin-right:6px;min-width:0}
+.pblock.on .plabel{color:var(--accent-ink)}
+.pblock label{display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--ink-2)} .pblock input{min-height:34px;padding:4px 8px}
+@container app (max-width:900px){.pblock+.pblock{border-left:0;border-top:1px solid var(--hair)}.pblock{width:100%}.pblock label{flex:1}}
+
+/* état des lieux */
+.glance{padding:16px 20px;display:flex;flex-direction:column;gap:12px}
+.stats{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.stat{display:flex;flex-direction:column;min-width:120px}
+.stat .v{font-family:"Newsreader",Georgia,serif;font-size:40px;line-height:1;font-weight:500}
+.stat .l{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:600;margin-top:4px}
+.stat .s{font-size:12.5px;color:var(--ink-2)}
+.stat.hi .v{color:var(--accent-ink)}
+.arrow{color:var(--hair-2);font-size:22px}
+.sbar{display:flex;height:8px;border-radius:4px;overflow:hidden;gap:2px} .sbar i{display:block;min-width:0}
+.schips{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.schip{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--hair-2);background:var(--surface);border-radius:999px;padding:5px 11px 5px 9px;font-size:13px;font-weight:500;color:var(--ink);min-height:34px}
+.schip b{font-weight:600;color:var(--ink-2)} .schip[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:var(--surface)} .schip[aria-pressed="true"] b{color:var(--surface)}
+.sdot{width:9px;height:9px;border-radius:50%;display:inline-block;background:var(--hair-2)} .sdot.good{background:var(--good)} .sdot.acc{background:var(--accent)} .sdot.warn{background:var(--warn)} .sdot.crit{background:var(--crit)} .sdot.neu{background:var(--hair-2)}
+/* échanges en lignes */
+.xg{margin-bottom:18px}
+.xgh{display:flex;align-items:center;gap:8px;font-family:"Instrument Sans",sans-serif;font-size:13px;font-weight:600;color:var(--ink-2);margin:0 0 6px;text-transform:uppercase;letter-spacing:.06em} .xgh .n{color:var(--muted);font-weight:500}
+.xrow{background:var(--surface);border:1px solid var(--hair);border-radius:8px;margin-bottom:6px;position:relative}
+.xrow.sel{background:var(--surface-2)}
+.xmain{display:grid;grid-template-columns:200px 140px minmax(0,1fr) auto;gap:14px;align-items:center;width:100%;padding:12px 124px 12px 14px;text-align:left;min-height:52px}
+.xmain:hover{background:var(--surface-3);border-radius:8px}
+.xc1 b{font-weight:600;display:block} .xc1 .s{display:block;font-size:12px;color:var(--muted)}
+.xc2{display:flex;flex-direction:column;gap:2px;font-size:12.5px;color:var(--ink-2)}
+.xc3{font-size:13.5px;color:var(--ink-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.xc4{text-align:right}
+.xacts{position:absolute;right:12px;top:12px}
+.xrow.open .xacts{display:none}
+.xbody{padding:0 14px 14px;display:flex;flex-direction:column;gap:10px;border-top:1px solid var(--hair);margin-top:2px;padding-top:12px}
+.xsum{margin:0;font-size:14.5px;line-height:1.55;max-width:80ch}
+.xnext{display:flex;gap:10px;align-items:baseline;font-size:13.5px;padding:8px 12px;background:var(--accent-soft-2);border-radius:6px} .xnext .cap{color:var(--accent-ink);white-space:nowrap}
+.xfoot{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+select#whoSel{min-height:38px;padding:6px 10px}
+@container app (max-width:900px){.xmain{grid-template-columns:minmax(0,1fr) auto;padding:12px 14px}.xc2{flex-direction:row;gap:8px;grid-column:1/-1}.xc3{grid-column:1/-1;white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}.xacts{display:none}.xc4{text-align:left;grid-row:1;grid-column:2}.stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.stat{min-width:0}.stat .v{font-size:30px}.arrow{display:none}}
+
+.pill.acc{background:var(--accent-soft);color:var(--accent-ink)}
+.xlist{display:flex;flex-direction:column;gap:12px}
+.xc{background:var(--surface);border:1px solid var(--hair);border-radius:8px;padding:16px 18px;display:flex;flex-direction:column;gap:10px;border-left:3px solid var(--accent)}
+.xc.sel{background:var(--surface-2)}
+.xhead{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap}
+.xco{font-family:"Newsreader",Georgia,serif;font-size:22px;font-weight:500;line-height:1.1}
+.xct{font-size:13px;color:var(--ink-2);margin-top:2px}
+.xmeta{display:flex;gap:8px;align-items:center;font-size:12.5px;color:var(--muted);flex-wrap:wrap}
+.who{display:inline-flex;align-items:center;gap:6px;color:var(--ink-2);font-weight:600}
+.xsum{margin:0;font-size:14.5px;line-height:1.55;max-width:80ch}
+.xnext{display:flex;gap:10px;align-items:baseline;font-size:13.5px;padding:8px 12px;background:var(--accent-soft-2);border-radius:6px} .xnext .cap{color:var(--accent-ink);white-space:nowrap}
+.xfoot{display:flex;gap:6px;align-items:center;flex-wrap:wrap;padding-top:4px}
+.kpis3{grid-template-columns:repeat(3,minmax(0,1fr))}
+@container app (max-width:700px){.kpis3{grid-template-columns:minmax(0,1fr)}.xco{font-size:20px}}
+
+/* day chips, range, actions, qualify list */
+.daybar{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.daychip{display:flex;flex-direction:column;align-items:center;gap:0;min-width:52px;min-height:48px;padding:5px 8px;border:1px solid var(--hair-2);border-radius:8px;background:var(--surface);color:var(--ink-2);font-size:11px;position:relative;line-height:1.2}
+.daychip b{font-family:"Newsreader",Georgia,serif;font-size:18px;color:var(--ink);font-weight:500}
+.daychip[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:var(--surface)} .daychip[aria-pressed="true"] b{color:var(--surface)}
+.daychip:disabled{opacity:.4;cursor:default}
+.daychip .dot{position:absolute;top:5px;right:5px;width:6px;height:6px;border-radius:50%;background:var(--good)} .daychip .dot.ko{background:var(--crit)} .daychip .dot.wip{background:var(--warn)}
+.rangebar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:12px 14px;background:var(--surface);border:1px solid var(--hair);border-radius:8px}
+.rangebar label{display:inline-flex;align-items:center;gap:8px;font-size:13px;color:var(--ink-2)} .rangebar input{min-height:36px;padding:4px 8px}
+.rangebar.hide{display:none}
+.acts{display:inline-flex;gap:4px}
+.act{width:34px;height:34px;border-radius:6px;border:1px solid var(--hair);background:var(--surface);color:var(--ink-2);display:inline-flex;align-items:center;justify-content:center}
+.act:hover:not(:disabled){border-color:var(--accent);color:var(--accent-ink)} .act:disabled{opacity:.35;cursor:default}
+.act.btn{width:auto;padding:0 10px;min-height:32px;height:auto}
+td.nowrap,td .nowrap{white-space:nowrap}
+.act svg,.links svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+td.actcell{white-space:nowrap;padding:8px 8px 8px 4px} td.actcell .act{width:30px;height:30px} td.actcell .acts{gap:2px}
+.links{display:flex;gap:6px;flex-wrap:wrap}
+.ccard{display:flex;flex-direction:column;gap:8px;padding:12px 14px;border-top:1px solid var(--hair)} .ccard:first-child{border-top:0} .ccard.sel{background:var(--surface-2)}
+.ccardbtn{display:flex;flex-direction:column;gap:5px;text-align:left;width:100%;min-height:44px}
+.ccard .acts{gap:6px} .ccard .act.btn{width:auto;padding:0 10px}
+.ccard .t{display:flex;justify-content:space-between;gap:10px;align-items:center;font-weight:600;font-size:15px} .ccard .m{font-size:12.5px;color:var(--muted)}
+.qlist{display:flex;flex-direction:column;gap:12px}
+.qitem{background:var(--surface);border:1px solid var(--hair);border-radius:8px;padding:16px 18px;display:flex;flex-direction:column;gap:14px}
+.qhead{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:flex-start}
+.qtitle{font-family:"Newsreader",Georgia,serif;font-size:22px;font-weight:500;margin-top:2px}
+.qgrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px 24px}
+.qq{font-size:13px;font-weight:600;margin-bottom:6px;color:var(--ink-2)}
+.qfoot{display:flex;gap:8px;align-items:center;flex-wrap:wrap;border-top:1px solid var(--hair);padding-top:12px}
+.qnote{flex:1;min-width:220px;min-height:38px}
+@container app (max-width:700px){.qgrid{grid-template-columns:minmax(0,1fr)}.qfoot .btn{flex:1}.daychip{min-width:40px;padding:4px 3px;flex:1}.daybar{gap:4px}.daybar .cap{display:none}.daybar .btn.sm{padding:0 8px}.rangebar label{flex:1}}
+@media (max-width:900px){.toast{bottom:88px}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div id="app"></div>
+<button class="btn devtoggle" id="devtoggle" aria-pressed="false">Aperçu téléphone</button>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<div class="modal" id="modal" role="dialog" aria-modal="true"></div>
+
+<script>
+/* ---------- Données d'exemple (générées, pas des chiffres réels) ---------- */
+const USERS=[{id:'adrien',name:'Adrien',ini:'AD',email:'adrien.astoul@cabinet-ekinox.fr',role:'admin',active:true,line:'+33 1 84 80 11 01'},
+ {id:'alexandre',name:'Alexandre',ini:'AL',email:'alexandre.mesnier@cabinet-ekinox.fr',role:'member',active:true,line:'+33 1 84 80 11 02'},
+ {id:'remy',name:'Rémy',ini:'RÉ',email:'remy@cabinet-ekinox.fr',role:'member',active:true,line:'+33 1 84 80 11 03'},
+ {id:'pablo',name:'Pablo',ini:'PA',email:'pablo@cabinet-ekinox.fr',role:'member',active:true,line:'+33 1 84 80 11 04'},
+ {id:'floryanne',name:'Floryanne',ini:'FL',email:'floryanne@cabinet-ekinox.fr',role:'member',active:true,line:'+33 1 84 80 11 05'},
+ {id:'sarah',name:'Sarah',ini:'SA',email:'sarah@cabinet-ekinox.fr',role:'member',active:false,line:'+33 1 84 80 11 06'}];
+const COMPANIES=[['Camping Car Park','Head of IT','Enard Renette'],['Orus','First Data Engineer','Davi Barreto Façanha'],['Kactus','Lead Developer','Benoit Calin'],['Oxalys','CTO','Baïla Bâ'],['UltraEdge','Responsable IT','Ludovic Marin'],['ManOrga','Technical Lead','Esteban Mathia'],['Echosens','HR Officer','Typhaine Bomongo'],['Vectorive','CTO','Hannick Abdul Kuthoos'],['Synqro','Fondateur','Nathan Dolard'],['Brigad','VP Engineering','Claire Aubert'],['Pennylane','Engineering Manager','Julien Roche'],['Swile','Head of Data','Inès Marchal'],['Alan','Staff Engineer','Théo Lambert'],['Qonto','Talent Partner','Sofia Reyes'],['Ledger','CTO','Marc Vidal'],['Doctolib','Tech Recruiter','Léa Petit'],['Lydia','Head of Platform','Karim Bensaïd'],['Back Market','Engineering Director','Anna Weiss'],['Malt','CTO','Paul Girard'],['Payfit','VP Product','Camille Noël'],['Spendesk','Head of Engineering','Yann Le Gall'],['Ankorstore','CTO','Hugo Faure'],['Mirakl','Engineering Manager','Sarah Cohen'],['Contentsquare','Recruiting Lead','Omar Haddad']];
+const CANDS_UNUSED=[['Développeur Full Stack','Maxime Casoliva'],['Data Engineer','Enora Bordeau'],['DevOps','David Gaspar'],['Product Manager','Jacqueline Antonippillai'],['Tech Lead','Lionel Aidel'],['Développeuse Front','Marie Dufour'],['SRE','Antoine Petit'],['Data Scientist','Nadia Kader']];
+const OUTCOME_LABEL={tentative:'Tentative',court:'Court · à qualifier',bache:'Bâché',conversation:'Conversation',rdv:'Rendez-vous'};
+const KIND_LABEL={prospection:'Prospection',autre:'Hors prospection',inconnu:'Inconnu'};
+/* Situations : tag explicite posé sur chaque échange (auto depuis le résumé, corrigeable) */
+const SITU={rdv:['Rendez-vous pris','good'],ouvert:['Décideur ouvert','acc'],porte:['Porte d’entrée nommée','acc'],client:['Client actif','good'],direct:['Recrute en direct','crit'],besoin:['Pas de besoin','neu'],relance:['Relance à prévoir','warn'],bache:['Bâché','crit'],aq:['À qualifier','warn'],nosum:['Résumé à compléter','warn']};
+const SUMS={
+ rdv:[c=>`${c.contact} (${c.role}) confirme un besoin de recrutement tech à court terme et accepte un rendez-vous de cadrage. Périmètre, budget et process à préciser lors du rendez-vous.`,c=>`Échange dense avec ${c.contact} : équipe en croissance, deux postes à ouvrir avant la fin du trimestre. Rendez-vous pris pour présenter l’approche Ekinox.`],
+ ouvert:[c=>`${c.contact} pilote une équipe qu’il doit stabiliser puis faire grandir. Pas d’ouverture immédiate mais une vague de recrutement est attendue dans les mois à venir ; ouvert à préparer ça avec nous.`,c=>`Bon contact avec ${c.contact} : la stack évolue, le recrutement passera par un cabinet si le besoin se confirme. Souhaite être recontacté quand le budget sera arbitré.`],
+ porte:[c=>`${c.contact} n’est pas décisionnaire sur les cabinets : les RH pilotent. Il nomme la bonne personne à appeler et accepte qu’on se recommande de lui.`,c=>`${c.contact} renvoie vers la direction technique pour toute question recrutement, en donnant le nom du bon interlocuteur.`],
+ client:[c=>`Point d’étape avec ${c.contact} sur la mission en cours : entretien candidat confirmé, retour attendu sous 48 h. Relation saine, pas de blocage.`],
+ direct:[c=>`${c.contact} a un poste ouvert mais le gère en direct (annonce + candidats déjà en entretien). Pas de cabinet pour l’instant ; à revoir si le poste traîne.`],
+ besoin:[c=>`Équipe au complet, gel des recrutements jusqu’à nouvel ordre. ${c.contact} garde nos coordonnées ; pas de relance avant plusieurs mois.`],
+ relance:[c=>`${c.contact} est intéressé mais pris : demande d’être rappelé la semaine prochaine avec un créneau précis.`],
+ bache:[c=>`Refus sec, pas d’échange possible.`]};
+const NEXT={rdv:'Préparer le rendez-vous : fiche société, benchmark salaires, cas clients proches.',ouvert:'Relancer à la date convenue avec un contenu utile (grille salaires, tendances).',porte:'Appeler la personne nommée en se recommandant de l’échange.',client:'Suivre le retour d’entretien et la réception du contrat.',direct:'Recontacter dans 3 semaines si le poste est toujours ouvert.',besoin:'Relance dans 4 mois, pas avant.',relance:'Rappeler au créneau demandé.',bache:'Aucune.'};
+let seed=20260903; const rnd=()=>{seed=(seed*1103515245+12345)&0x7fffffff;return seed/0x7fffffff};
+const pick=a=>a[Math.floor(rnd()*a.length)];
+function businessDays(from,to){const out=[];const d=new Date(from+'T12:00:00');const end=new Date(to+'T12:00:00');while(d<=end){const wd=d.getDay();if(wd>=1&&wd<=5)out.push(d.toISOString().slice(0,10));d.setDate(d.getDate()+1)}return out}
+const DAYS=businessDays('2026-08-17','2026-09-03');
+const TODAY='2026-09-03';
+const CALLS=[];let cid=8840000;
+function mkCall(day,t,user,dir,kind,dur,status,co,contact,role,extra={}){
+  const dial='+33 '+(dir==='out'?pick(['6','7','1']):pick(['6','7']))+' '+String(10+Math.floor(rnd()*89))+' '+String(10+Math.floor(rnd()*89))+' •• ••';
+  let outcome='tentative';
+  if(status==='answered'){outcome=dur>=60?'conversation':'court'}
+  const c={id:++cid,day,t,user,dir,kind,dur,status,company:co,contact,role,number:dial,outcome,note:'',tags:[],source:'webhook',history:[{at:day+' '+t,who:'auto',txt:'Classé '+KIND_LABEL[kind].toLowerCase()+(kind==='prospection'?' (contact Jarvi)':kind==='candidat'?' (talent Jarvi)':'')}],...extra};
+  CALLS.push(c);return c;
+}
+for(const day of DAYS){
+  if(day===TODAY)continue;
+  const curated=day==='2026-09-02';
+  const n=curated?24:34+Math.floor(rnd()*20);
+  for(let i=0;i<n;i++){
+    const hh=8+Math.floor(rnd()*10),mm=Math.floor(rnd()*60);const t=String(hh).padStart(2,'0')+':'+String(mm).padStart(2,'0');
+    const user=pick(['adrien','adrien','adrien','alexandre','alexandre','remy','remy','pablo','floryanne']);
+    const r=rnd();const kind=r<.84?'prospection':r<.94?'autre':'inconnu';
+    const dir=rnd()<.78?'out':'in';
+    const s=rnd();let status=s<.42?'missed':s<.6?'voicemail':'answered';
+    if(curated&&kind==='prospection'&&status==='answered')status=rnd()<.5?'missed':'voicemail';
+    const dur=status==='answered'?(rnd()<.35?5+Math.floor(rnd()*50):60+Math.floor(rnd()*900)):(status==='voicemail'?3+Math.floor(rnd()*20):0);
+    let co='',contact='',role='';
+    if(kind==='prospection'){const x=pick(COMPANIES);co=x[0];role=x[1];contact=x[2]}
+    else if(kind==='autre'){co=pick(['Interne','Fournisseur','Standard']);contact=pick(['Ligne interne','Support Ringover','Comptabilité'])}
+    const c=mkCall(day,t,user,dir,kind,dur,status,co,contact,role);
+    if(c.outcome==='conversation'&&kind==='prospection'&&rnd()<.22){c.outcome='rdv';c.tags=['RDV']}
+    if(c.outcome==='court'&&kind==='prospection'&&rnd()<.5){c.outcome='bache'}
+    if(kind==='prospection'&&(c.outcome==='conversation'||c.outcome==='rdv')){const k=c.outcome==='rdv'?'rdv':pick(['ouvert','ouvert','porte','porte','direct','besoin','relance','client']);c.situ=k;c.summary=pick(SUMS[k])(c);c.next=NEXT[k]}
+    if(c.outcome==='bache'){c.situ='bache';c.summary=SUMS.bache[0](c);c.next=NEXT.bache}
+  }
+}
+/* journée du 2 septembre : lignes inspirées du récap réel */
+[['17:01','remy','in','prospection',852,'answered','Camping Car Park','Enard Renette','Head of IT',{outcome:'rdv',tags:['RDV'],situ:'rdv',summary:"Arrivé début août sous le CTO, il pilote 9 personnes et doit stabiliser une stack éclatée par les changements de DSI, puis passer à l’échelle. Deux priorités : assainir la stack, puis introduire l’IA dans le dev et les opérations. Aucun recrutement d’ici fin 2026 mais une vague attendue en décembre, avec des profils DevOps augmentés à l’IA difficiles à cadrer. Explicitement ouvert à préparer ça avec Ekinox plutôt que de recruter dans l’urgence.",next:"Relancer en décembre 2026 pour cadrer les besoins 2027 ; garder le contact chaud d’ici là."}],
+ ['11:40','remy','out','prospection',362,'answered','Orus','Davi Barreto Façanha','First Data Engineer',{situ:'porte',summary:"Il participe au recrutement data engineer mais ce sont les RH internes qui pilotent les cabinets ; process déjà établi et société en expansion. Il oriente vers les RH, en citant M. Buquet comme meilleur point d’entrée.",next:"Contacter les RH d’Orus (M. Buquet) en se recommandant de l’échange avec Davi."}],
+ ['11:26','adrien','out','prospection',250,'answered','Kactus','Benoit Calin','Lead Developer',{situ:'direct',tags:['Recrute en direct'],summary:"Poste de Tech Lead ouvert, mais géré en direct via Welcome to the Jungle avec des candidats déjà en entretien : pas besoin de cabinet pour l’instant.",next:"Recontacter fin septembre si le poste n’est pas pourvu."}],
+ ['11:45','adrien','out','prospection',70,'answered','Oxalys','Baïla Bâ','CTO',{}],
+ ['09:03','alexandre','out','prospection',878,'answered','UltraEdge','Ludovic Marin','Responsable IT',{situ:'ouvert',summary:"Long échange sur l’organisation IT : équipe de 6, deux départs à remplacer d’ici la fin d’année, budget en cours d’arbitrage. Pas de cabinet référencé, ouvert à une proposition.",next:"Envoyer une présentation courte et rappeler sous 15 jours."}],
+ ['17:48','adrien','out','prospection',485,'answered','ManOrga','Esteban Mathia','Technical Lead',{situ:'client',tags:['Entretien confirmé'],summary:"Confirmation de l’entretien de Pierre lundi 9h. Contrat : pas de retour RH (vacances), Esteban s’engage à envoyer le document au plus tard mercredi après validation de son supérieur.",next:"Suivre l’entretien de lundi puis la réception du contrat."}],
+ ['14:38','alexandre','out','prospection',6,'voicemail','Echosens','Typhaine Bomongo','HR Officer',{}],
+ ['15:12','pablo','in','inconnu',0,'missed','','','',{}],
+ ['16:20','floryanne','out','prospection',0,'missed','Swile','Inès Marchal','Head of Data',{}]
+].forEach(([t,u,d,k,dur,st,co,ct,ro,ex])=>mkCall('2026-09-02',t,u,d,k,dur,st,co,ct,ro,ex));
+/* aujourd'hui : quelques appels déjà arrivés */
+[['09:12','adrien','out','prospection',0,'missed','Brigad','Claire Aubert','VP Engineering',{}],['09:31','remy','out','prospection',420,'answered','Ledger','Marc Vidal','CTO',{situ:'relance',summary:"Marc est intéressé par un profil SRE mais en réunion : demande un rappel jeudi 11h avec deux exemples de profils placés.",next:"Rappeler jeudi 11h avec deux profils anonymisés."}],['10:20','adrien','out','prospection',48,'answered','Malt','Paul Girard','CTO',{}],['10:44','pablo','out','inconnu',0,'missed','','','',{}]].forEach(([t,u,d,k,dur,st,co,ct,ro,ex])=>mkCall(TODAY,t,u,d,k,dur,st,co,ct,ro,ex));
+CALLS.sort((a,b)=>(a.day+a.t).localeCompare(b.day+b.t));
+const DAY_STATUS={};for(const d of DAYS){const n=CALLS.filter(c=>c.day===d).length;DAY_STATUS[d]={webhook:n,api:n,complete:true,checked:'02:00'}}
+DAY_STATUS['2026-09-01']={webhook:CALLS.filter(c=>c.day==='2026-09-01').length,api:CALLS.filter(c=>c.day==='2026-09-01').length+4,complete:false,checked:'02:00'};
+DAY_STATUS[TODAY]={webhook:5,api:null,complete:null,checked:null};
+
+/* ---------- État ---------- */
+const S={view:'login',xview:(()=>{try{return localStorage.getItem('rp_xview')||'colonnes'}catch(e){return 'colonnes'}})(),day:'2026-09-02',mode:'day',from:'2026-08-31',to:'2026-09-02',week:'2026-08-31',who:'all',stage:null,sel:null,showAll:false,q:0,loginStep:0,email:'adrien.astoul@cabinet-ekinox.fr',me:USERS[0],retention:24,rawRetention:90};
+const fmtDur=s=>s>=60?Math.floor(s/60)+' min'+(s%60?' '+String(s%60).padStart(2,'0')+' s':''):s+' s';
+const fmtDurShort=s=>s>=60?Math.floor(s/60)+' min':s+' s';
+const FR_D=['dimanche','lundi','mardi','mercredi','jeudi','vendredi','samedi'],FR_M=['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'];
+const dateFR=(d,short)=>{const x=new Date(d+'T12:00:00');const day=x.getDate();const dd=(day===1?'1er':day);return short?(FR_D[x.getDay()].slice(0,3)+'. '+dd+' '+FR_M[x.getMonth()].slice(0,4)+'.'):(FR_D[x.getDay()]+' '+dd+' '+FR_M[x.getMonth()])};
+const cap=s=>s.charAt(0).toUpperCase()+s.slice(1);
+const weekNum=d=>{const x=new Date(d+'T12:00:00');const t=new Date(Date.UTC(x.getFullYear(),x.getMonth(),x.getDate()));const dn=t.getUTCDay()||7;t.setUTCDate(t.getUTCDate()+4-dn);const y=new Date(Date.UTC(t.getUTCFullYear(),0,1));return Math.ceil((((t-y)/86400000)+1)/7)};
+const monday=d=>{const x=new Date(d+'T12:00:00');const wd=(x.getDay()+6)%7;x.setDate(x.getDate()-wd);return x.toISOString().slice(0,10)};
+const addDays=(d,n)=>{const x=new Date(d+'T12:00:00');x.setDate(x.getDate()+n);return x.toISOString().slice(0,10)};
+const userOf=id=>USERS.find(u=>u.id===id);
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+function funnel(calls){const p=calls.filter(c=>c.kind==='prospection');const tent=p.filter(c=>c.dir==='out').length;const eue=p.filter(c=>c.status==='answered').length;const conv=p.filter(c=>c.outcome==='conversation'||c.outcome==='rdv').length;const rdv=p.filter(c=>c.outcome==='rdv').length;return{tent,eue,conv,rdv}};
+const pct=(a,b)=>b?Math.round(a/b*100)+' %':'—';
+const ICON={refresh:'<svg viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.3-5.7M20 4v5h-5"></path></svg>',jour:'<svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="17" rx="2"></rect><path d="M3 9h18M8 2v4M16 2v4"></path></svg>',semaine:'<svg viewBox="0 0 24 24"><path d="M4 19V9M10 19V5M16 19v-8M22 19H2"></path></svg>',qualifier:'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"></circle><path d="M12 8v4l3 2"></path></svg>',equipe:'<svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"></circle><path d="M2.5 20c0-3.6 2.9-6 6.5-6s6.5 2.4 6.5 6"></path><circle cx="17.5" cy="9" r="2.5"></circle><path d="M16 14.5c3 .2 5.5 2.3 5.5 5.5"></path></svg>',admin:'<svg viewBox="0 0 24 24"><rect x="4" y="11" width="16" height="10" rx="2"></rect><path d="M8 11V7a4 4 0 0 1 8 0v4"></path></svg>',left:'<svg viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"></path></svg>',right:'<svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"></path></svg>',check:'<svg viewBox="0 0 24 24" style="stroke-width:3"><path d="M5 12l5 5L20 7"></path></svg>',play:'<svg viewBox="0 0 24 24"><path d="M5 3l14 9-14 9z"></path></svg>'};
+CALLS.forEach(c=>{if(c.kind==='inconnu'||(c.kind==='prospection'&&c.outcome==='court'))c.needsReview=true});
+const toQualify=()=>CALLS.filter(c=>c.day>=addDays(TODAY,-7)&&c.needsReview&&!c.qualified);
+
+/* ---------- Rendu ---------- */
+const app=document.getElementById('app');
+function render(){
+  if(S.view==='login'){app.innerHTML=viewLogin();bind();return}
+  const nq=toQualify().length;
+  const nav=[['jour','Jour'],['semaine','Semaine'],['qualifier','À qualifier'],['equipe','Collaborateurs'],['admin','Administration']].filter(([v])=>v!=='admin'||S.me.role==='admin');
+  const navHTML=nav.map(([v,l])=>`<a href="#${v}" ${S.view===v?'aria-current="page"':''}>${ICON[v]}${l}${v==='qualifier'&&nq?`<span class="badge">${nq}</span>`:''}</a>`).join('');
+  const tabsHTML=nav.filter(([v])=>v!=='admin').map(([v,l])=>`<a href="#${v}" ${S.view===v?'aria-current="page"':''}>${ICON[v]}${l==='Collaborateurs'?'Équipe':l}${v==='qualifier'&&nq?`<span class="badge">${nq}</span>`:''}</a>`).join('');
+  const body={jour:viewJour,semaine:viewSemaine,qualifier:viewQualifier,equipe:viewEquipe,admin:viewAdmin}[S.view]();
+  app.innerHTML=`<div class="shell">
+    <aside class="rail"><div class="brand"><div class="serif">Récap prospection</div><small>Cabinet Ekinox</small></div><nav class="nav">${navHTML}</nav>
+      <div class="me"><span class="av">${S.me.ini}</span><div style="line-height:1.2;min-width:0"><div style="font-weight:600;font-size:13px">${esc(S.me.name)}</div><div style="font-size:11.5px;color:var(--muted)">${S.me.role==='admin'?'admin':'membre'} · <a href="#logout">déconnexion</a></div></div></div></aside>
+    <main class="main">${body}<div class="foot"><span>Récap prospection · prototype v0.1</span><span>Données d'exemple générées, pas des chiffres réels</span><span>Hébergé à Paris · accès sur invitation</span></div></main>
+    <nav class="tabs">${tabsHTML}</nav></div>`;
+  bind();
+}
+function viewLogin(){
+  const steps=[`<div class="field"><label for="em">Adresse e-mail</label><input id="em" type="email" value="${esc(S.email)}" autocomplete="email"></div>
+    <button class="btn primary lg" data-act="magic">Recevoir un lien de connexion</button>
+    <div style="display:flex;align-items:center;gap:10px;color:var(--muted);font-size:12px"><span style="flex:1;height:1px;background:var(--hair)"></span>ou<span style="flex:1;height:1px;background:var(--hair)"></span></div>
+    <button class="btn lg" data-act="google"><svg viewBox="0 0 24 24" style="width:18px;height:18px;stroke:none"><path d="M21.6 12.2c0-.7-.1-1.3-.2-1.9H12v3.7h5.4a4.6 4.6 0 0 1-2 3v2.5h3.2c1.9-1.7 3-4.3 3-7.3z" fill="#4285F4"/><path d="M12 22c2.7 0 5-.9 6.6-2.4l-3.2-2.5c-.9.6-2 1-3.4 1-2.6 0-4.8-1.8-5.6-4.1H3.1v2.6A10 10 0 0 0 12 22z" fill="#34A853"/><path d="M6.4 14a6 6 0 0 1 0-3.9V7.5H3.1a10 10 0 0 0 0 9z" fill="#FBBC05"/><path d="M12 6c1.5 0 2.8.5 3.8 1.5l2.8-2.8A10 10 0 0 0 3.1 7.5l3.3 2.6C7.2 7.8 9.4 6 12 6z" fill="#EA4335"/></svg>Continuer avec Google Workspace</button>
+    ${S.loginErr?`<div class="pill crit" style="white-space:normal;padding:10px 14px;border-radius:6px">${esc(S.loginErr)}</div>`:''}
+    <div style="font-size:12px;color:var(--muted)">Pas de mot de passe : le lien reçu par e-mail vaut connexion pendant 10 minutes. Adresse non invitée = accès refusé.</div>`,
+   `<div class="pill good" style="white-space:normal;padding:12px 14px;border-radius:6px;font-weight:500">Lien envoyé à <b>${esc(S.email)}</b>. Ouvrez-le depuis votre boîte mail (valable 10 minutes).</div>
+    <button class="btn primary lg" data-act="openlink">Ouvrir le lien (simulation)</button>
+    <button class="btn lg" data-act="back">Changer d'adresse</button>`,
+   `<div class="field"><label>Code d'authentification (MFA, administrateur)</label><div style="display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px" id="mfa">${[4,8,1,'','',''].map((v,i)=>`<input inputmode="numeric" maxlength="1" value="${v}" aria-label="chiffre ${i+1}" style="text-align:center;font-size:20px;min-height:48px">`).join('')}</div><span style="font-size:12px;color:var(--muted)">Depuis votre application d'authentification. Obligatoire pour les administrateurs.</span></div>
+    <button class="btn primary lg" data-act="mfa">Se connecter</button>`][S.loginStep];
+  return `<div class="login"><div class="side"><div class="serif">Récap<br>prospection</div><div style="font-size:12.5px;color:#c9dcd4;display:flex;flex-direction:column;gap:8px"><span>Accès réservé à l'équipe du Cabinet Ekinox.</span><span>Chaque connexion est journalisée. Données hébergées à Paris.</span></div></div>
+  <div class="form"><div><h1 style="font-size:30px">Connexion</h1><p style="margin:6px 0 0;color:var(--ink-2)">Utilisez votre adresse professionnelle.</p></div>${steps}</div></div>`;
+}
+function periodDays(){if(S.mode==='range'){return businessDays(S.from,S.to).filter(d=>d<=TODAY)}return [S.day]}
+function dayCalls(){const days=periodDays();return CALLS.filter(c=>days.includes(c.day)&&(S.who==='all'||c.user===S.who))}
+const ACT_ICON={rec:'<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"></circle><path d="M10 8l6 4-6 4z"></path></svg>',person:'<svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"></circle><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7"></path></svg>',building:'<svg viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="1"></rect><path d="M9 7h2M13 7h2M9 11h2M13 11h2M9 15h2M13 15h2M10 21v-3h4v3"></path></svg>'};
+function actions(c,big){
+  const b=(a,icon,label,dis,title)=>`<button class="act ${big?'btn sm':''}" data-act="${a}" data-id="${c.id}" ${dis?'disabled':''} title="${title}" aria-label="${title}">${icon}${big?label:''}</button>`;
+  return `<span class="acts">${b('rec',ACT_ICON.rec,'Enregistrement',c.status!=='answered','Écouter l’enregistrement Ringover')}${b('jcontact',ACT_ICON.person,'Contact',!c.contact||c.kind==='autre','Fiche Jarvi du contact')}${b('jcompany',ACT_ICON.building,'Société',!c.company||c.kind!=='prospection','Fiche Jarvi de la société')}</span>`;
+}
+function situPill(c){const k=c.situ||(c.needsReview&&!c.qualified?'aq':(c.status==='answered'&&c.dur>=60&&c.kind==='prospection'?'nosum':null));if(!k)return '';const [l,cls]=SITU[k];return `<span class="pill ${cls}">${l}</span>`}
+const SITU_ORDER=['rdv','ouvert','porte','relance','client','direct','besoin','bache','nosum'];
+function viewJour(){
+  const all=dayCalls().filter(c=>c.kind!=='autre');const f=funnel(all);const days=periodDays();const range=S.mode==='range';
+  const st=DAY_STATUS[S.day]||{};
+  const aq=all.filter(c=>c.needsReview&&!c.qualified);
+  const conv=all.filter(c=>c.status==='answered'&&c.dur>=60&&c.kind==='prospection');
+  const rest=all.filter(c=>!conv.includes(c));
+  let status;
+  if(range){const incd=days.filter(d=>DAY_STATUS[d]?.complete===false).length;status=incd?`<span class="pill crit">${incd} journée${incd>1?'s':''} incomplète${incd>1?'s':''}</span>`:`<span class="pill good">${ICON.check}${days.length} journées complètes</span>`}
+  else status=st.complete===true?`<span class="pill good">${ICON.check}Journée complète · ${st.api} appels Ringover</span>`:st.complete===false?`<span class="pill crit">Incomplète · ${st.webhook} / ${st.api} appels reçus</span>`:`<span class="pill warn">En cours · ${st.webhook} appels reçus</span>`;
+  const who=c=>`<span class="who"><span class="av" style="width:20px;height:20px;font-size:9px">${userOf(c.user).ini}</span>${esc(userOf(c.user).name)}</span>`;
+  /* --- barre de navigation compacte --- */
+  const wk=weekDays(monday(S.day));
+  const dayChips=`<div class="daybar"><button class="btn sm" data-wk="-1" aria-label="semaine précédente">${ICON.left}</button><span class="cap" style="min-width:34px">S${weekNum(S.day)}</span>${wk.map(d=>{const x=new Date(d+'T12:00:00');const fut=d>TODAY;const stt=DAY_STATUS[d];return`<button class="daychip" data-setday="${d}" aria-pressed="${d===S.day&&!range}" ${fut?'disabled':''}><span>${FR_D[x.getDay()].slice(0,3)}.</span><b class="num">${x.getDate()}</b>${stt?`<i class="dot ${stt.complete===true?'ok':stt.complete===false?'ko':'wip'}"></i>`:''}</button>`}).join('')}<button class="btn sm" data-wk="1" aria-label="semaine suivante" ${monday(S.day)>=monday(TODAY)?'disabled':''}>${ICON.right}</button><button class="btn sm" data-setday="${TODAY}">Aujourd'hui</button><button class="btn sm" data-mode="range" style="margin-left:6px">Plage de dates</button></div>`;
+  const rangeBar=`<div class="rangebar"><label>Du <input type="date" id="from" value="${S.from}" max="${TODAY}"></label><label>au <input type="date" id="to" value="${S.to}" max="${TODAY}"></label><button class="btn sm" data-preset="week">Cette semaine</button><button class="btn sm" data-preset="lastweek">Semaine dernière</button><button class="btn sm" data-preset="month">30 jours</button><button class="btn sm" data-mode="day">Retour au jour</button></div>`;
+  const whoSel=`<select id="whoSel" aria-label="collaborateur"><option value="all" ${S.who==='all'?'selected':''}>Toute l'équipe</option>${USERS.filter(u=>u.active).map(u=>`<option value="${u.id}" ${S.who===u.id?'selected':''}>${u.name}</option>`).join('')}</select>`;
+  const title=range?`${cap(dateFR(S.from,true))} → ${dateFR(S.to,true)}`:`${cap(dateFR(S.day))}`;
+  /* --- état des lieux --- */
+  const counts={};conv.forEach(c=>{const k=c.situ||'nosum';counts[k]=(counts[k]||0)+1});
+  const situChips=SITU_ORDER.filter(k=>counts[k]).map(k=>`<button class="schip" data-sfilter="${k}" aria-pressed="${S.sfilter===k}"><i class="sdot ${SITU[k][1]}"></i>${SITU[k][0]}<b class="num">${counts[k]}</b></button>`).join('')+(aq.length?`<button class="schip" data-sfilter="aq" aria-pressed="${S.sfilter==='aq'}"><i class="sdot warn"></i>À qualifier<b class="num">${aq.length}</b></button>`:'');
+  const stat=(l,v,sub)=>`<div class="stat"><span class="v num">${v}</span><span class="l">${l}</span>${sub?`<span class="s">${sub}</span>`:''}</div>`;
+  const glance=`<div class="glance card">
+    <div class="stats">${stat('appels passés',f.tent,'sortants')}<span class="arrow">→</span>${stat('personnes eues',f.eue,pct(f.eue,f.tent))}<span class="arrow">→</span>${stat('vraies conversations',f.conv,pct(f.conv,f.eue))}<span class="arrow">→</span><div class="stat hi"><span class="v num">${f.rdv}</span><span class="l">rendez-vous</span><span class="s">${all.filter(c=>c.outcome==='rdv').map(c=>c.company).slice(0,2).join(', ')||'—'}</span></div></div>
+    <div class="sbar" aria-hidden="true"><i style="flex:${Math.max(0,f.tent-f.eue)};background:var(--surface-2)" title="sans réponse"></i><i style="flex:${Math.max(0,f.eue-f.conv)};background:var(--bar-2)" title="courts / bâchés"></i><i style="flex:${Math.max(0,f.conv-f.rdv)};background:var(--bar)" title="conversations"></i><i style="flex:${f.rdv};background:var(--good)" title="rdv"></i></div>
+    <div class="schips"><span class="cap" style="margin-right:4px">Situations</span>${situChips||'<span style="color:var(--muted);font-size:13px">aucune conversation</span>'}</div>
+  </div>`;
+  /* --- échanges en colonnes par situation (lignes empilées sur téléphone) --- */
+  let list=conv;if(S.sfilter&&S.sfilter!=='aq')list=conv.filter(c=>(c.situ||'nosum')===S.sfilter);
+  const COLS=[['chaud','Rendez-vous & clients','good',['rdv','client']],['ouvert','Décideur ouvert','acc',['ouvert']],['porte','Porte d’entrée & relance','acc',['porte','relance']],['refus','Refus · pas de besoin','crit',['direct','besoin','bache']],['aq','À qualifier','warn',['nosum']]];
+  const card=c=>`<article class="kc ${S.sel===c.id?'sel':''}" >
+      <button class="kcbtn" data-sel="${c.id}"><span class="kct">${esc(c.company||'Société inconnue')}</span><span class="kcs">${esc(c.contact||'contact inconnu')}${c.role?' · '+esc(c.role):''}</span>${c.situ&&!['rdv','ouvert'].includes(c.situ)||c.situ==='client'||c.situ==='relance'?`<span style="margin-top:2px">${situPill(c)}</span>`:''}<span class="kcsum">${esc(c.summary||'Résumé indisponible — à compléter')}</span>${c.next?`<span class="kcnx">→ ${esc(c.next)}</span>`:''}</button>
+      <span class="kcf">${who(c)}<span class="num">${range?dateFR(c.day,true)+' · ':''}${c.t} · ${fmtDurShort(c.dur)}</span><span class="acts">${actions(c)}</span></span>
+    </article>`;
+  const aqCard=c=>`<article class="kc aq"><button class="kcbtn" data-sel="${c.id}"><span class="kct ${c.company?'':'num'}">${esc(c.company||c.number)}</span><span class="kcs">${c.kind==='inconnu'?'numéro absent de Jarvi':esc(c.contact||'')+(c.role?' · '+esc(c.role):'')} · ${c.status==='answered'?'appel court '+fmtDur(c.dur):(c.status==='voicemail'?'messagerie':'non décroché')}</span></button><span class="kcf">${who(c)}<span class="num">${range?dateFR(c.day,true)+' · ':''}${c.t}</span><a class="btn sm" href="#qualifier" style="margin-left:auto">Qualifier</a></span></article>`;
+  const cols=COLS.map(([id,label,cls,keys])=>{
+    let items=list.filter(c=>keys.includes(c.situ||'nosum')).sort((a,b)=>(keys.indexOf(a.situ||'nosum')-keys.indexOf(b.situ||'nosum'))||(b.day+b.t).localeCompare(a.day+a.t)).map(card);
+    if(id==='aq'){items=items.concat((S.sfilter&&S.sfilter!=='aq')?[]:aq.sort((a,b)=>(b.day+b.t).localeCompare(a.day+a.t)).map(aqCard))}
+    if(S.sfilter==='aq'&&id!=='aq')items=[];
+    const n=items.length;
+    return `<section class="kcol"><h3 class="kcolh ${cls}"><span>${label}</span><b class="num">${n}</b></h3>${items.join('')||`<div class="kempty">Aucun${id==='aq'?'':' échange'} sur la période</div>`}</section>`}).join('');
+  const board=`<div class="kboard">${cols}</div>`;
+  /* vue tableau (comme le récap actuel) */
+  const tlist=(S.sfilter==='aq'?[]:list).sort((a,b)=>(b.day+b.t).localeCompare(a.day+a.t));
+  const table=`<div class="card"><div class="tbl"><table class="xt"><thead><tr><th>Entreprise · contact</th><th>Qui · ${range?'date':'heure'}</th><th>Situation</th><th>Résumé</th><th>Étape suivante</th><th><span class="sr">Actions</span></th></tr></thead><tbody>${tlist.map(c=>`<tr class="row ${S.sel===c.id?'sel':''}" data-sel="${c.id}" tabindex="0"><td style="min-width:170px"><b style="font-weight:600">${esc(c.company||'—')}</b><span class="s">${esc(c.contact||'inconnu')}${c.role?' · '+esc(c.role):''}</span></td><td class="nowrap">${esc(userOf(c.user).name)}<span class="s num">${range?dateFR(c.day,true)+' · ':''}${c.t} · ${fmtDurShort(c.dur)}</span></td><td>${situPill(c)}</td><td class="sumcell">${esc(c.summary||'Résumé indisponible — à compléter')}</td><td class="nxcell">${esc(c.next||'—')}</td><td class="actcell">${actions(c)}</td></tr>`).join('')||'<tr><td colspan="6" class="empty">Aucune conversation sur la période.</td></tr>'}</tbody></table></div>
+    <div class="cards">${tlist.map(c=>`<div class="ccard ${S.sel===c.id?'sel':''}"><button class="ccardbtn" data-sel="${c.id}"><span class="t"><span>${esc(c.company||'—')}</span>${situPill(c)}</span><span class="m">${esc(c.contact||'inconnu')}${c.role?' · '+esc(c.role):''} · ${esc(userOf(c.user).name)} · <span class="num">${c.t}</span></span><span style="font-size:13px;color:var(--ink-2)">${esc(c.summary||'Résumé indisponible')}</span>${c.next?`<span class="kcnx">→ ${esc(c.next)}</span>`:''}</button>${actions(c,true)}</div>`).join('')}</div></div>
+    ${aq.length&&S.sfilter!=='aq'?`<div style="margin-top:10px;font-size:13px;color:var(--muted)">${aq.length} appel${aq.length>1?'s':''} à qualifier (numéros inconnus, appels courts) — <a href="#qualifier">ouvrir la file</a></div>`:''}`;
+  /* vue liste groupée par situation */
+  const grp=SITU_ORDER.map(k=>[k,(S.sfilter==='aq'?[]:list).filter(c=>(c.situ||'nosum')===k).sort((a,b)=>(b.day+b.t).localeCompare(a.day+a.t))]).filter(([k,arr])=>arr.length);
+  const lrow=c=>`<div class="xrow ${S.sel===c.id?'sel':''}"><button class="xmain" data-sel="${c.id}"><span class="xc1"><b>${esc(c.company||'Société inconnue')}</b><span class="s">${esc(c.contact||'contact inconnu')}${c.role?' · '+esc(c.role):''}</span></span><span class="xc2">${who(c)}<span class="num">${range?dateFR(c.day,true)+' · ':''}${c.t} · ${fmtDurShort(c.dur)}</span></span><span class="xc3">${esc(c.summary||'Résumé indisponible — à compléter')}</span><span class="xc4">${situPill(c)}</span></button><span class="xacts">${actions(c)}</span></div>`;
+  const liste=(grp.map(([k,arr])=>`<section class="xg"><h3 class="xgh"><i class="sdot ${SITU[k][1]}"></i>${SITU[k][0]}<span class="n">${arr.length}</span></h3>${arr.map(lrow).join('')}</section>`).join('')||'<div class="card empty">Aucune conversation sur la période.</div>')+(aq.length&&S.sfilter!=='aq'?`<section class="xg"><h3 class="xgh"><i class="sdot warn"></i>À qualifier<span class="n">${aq.length}</span></h3>${aq.map(c=>`<div class="xrow"><button class="xmain" data-sel="${c.id}"><span class="xc1"><b class="${c.company?'':'num'}">${esc(c.company||c.number)}</b><span class="s">${c.kind==='inconnu'?'numéro absent de Jarvi':esc(c.contact||'')}</span></span><span class="xc2">${who(c)}<span class="num">${c.t}</span></span><span class="xc3" style="color:var(--muted)">${c.status==='answered'?'appel court '+fmtDur(c.dur):(c.status==='voicemail'?'messagerie':'non décroché')}</span><span class="xc4"><span class="pill warn">À qualifier</span></span></button><span class="xacts"><a class="btn sm" href="#qualifier">Qualifier</a></span></div>`).join('')}</section>`:'');
+  const xgroups={colonnes:board,tableau:table,liste:liste}[S.xview]||board;
+  const viewSeg=`<span class="seg"><button data-xview="colonnes" aria-pressed="${S.xview==='colonnes'}">Colonnes</button><button data-xview="tableau" aria-pressed="${S.xview==='tableau'}">Tableau</button><button data-xview="liste" aria-pressed="${S.xview==='liste'}">Liste</button></span>`;
+  /* --- à qualifier + autres appels --- */
+  const aqRows=(S.sfilter==='aq'?aq:[]).concat([]);
+  const restRows=(S.sfilter&&S.sfilter!=='aq')?[]:rest.sort((a,b)=>(b.day+b.t).localeCompare(a.day+a.t));
+  const label=c=>c.needsReview&&!c.qualified?'À qualifier':c.outcome==='tentative'?(c.status==='voicemail'?'Messagerie':'Non décroché'):(c.situ?SITU[c.situ][0]:OUTCOME_LABEL[c.outcome]);
+  const outPill=c=>c.needsReview&&!c.qualified?'warn':({tentative:'neu',court:'warn',bache:'crit',conversation:'neu',rdv:'good'}[c.outcome]);
+  const restList=restRows;
+  const restHTML=restList.length?`<div class="card"><div class="tbl calls"><table><thead><tr><th>Entreprise</th><th>Contact</th><th>Qui</th><th>${range?'Date':'Heure'}</th><th>Durée</th><th>État</th><th><span class="sr">Actions</span></th></tr></thead><tbody>${restList.map(c=>`<tr class="row ${S.sel===c.id?'sel':''}" data-sel="${c.id}" tabindex="0"><td><b style="font-weight:600">${esc(c.company||'—')}</b>${c.kind==='inconnu'?`<span class="s num">${esc(c.number)}</span>`:''}</td><td>${esc(c.contact||'inconnu')}<span class="s">${esc(c.role||'')}</span></td><td>${esc(userOf(c.user).name)}</td><td class="num nowrap">${range?`<span class="s" style="margin-top:0">${dateFR(c.day,true)}</span>`:''}${c.t}</td><td class="num">${c.status==='answered'?fmtDurShort(c.dur):'—'}</td><td><span class="pill ${outPill(c)}">${esc(label(c))}</span></td><td class="actcell">${actions(c)}</td></tr>`).join('')}</tbody></table></div>
+    <div class="cards">${restList.map(c=>`<div class="ccard ${S.sel===c.id?'sel':''}"><button class="ccardbtn" data-sel="${c.id}"><span class="t"><span>${esc(c.company||c.contact||'Numéro inconnu')}</span><span class="pill ${outPill(c)}">${esc(label(c))}</span></span><span class="m">${esc(c.contact||c.number)}${c.role?' · '+esc(c.role):''}</span><span class="m">${esc(userOf(c.user).name)} · ${range?dateFR(c.day,true)+' · ':''}<span class="num">${c.t}</span>${c.status==='answered'?' · '+fmtDurShort(c.dur):''}</span></button>${actions(c,true)}</div>`).join('')}</div></div>`:'';
+  const restTitle=`Autres appels <span class="n">${rest.length} · messageries, non décrochés, appels courts</span>`;
+  return `<div class="head"><div><div class="cap">${range?'Plage de dates · '+days.length+' jours ouvrés':'Semaine '+weekNum(S.day)}</div><h1>${title}</h1><div class="sub">${status}</div></div>
+    <div class="toolbar">${whoSel}<button class="btn" data-act="export">Exporter</button></div></div>
+  ${range?rangeBar:dayChips}
+  <div style="height:16px"></div>
+  ${glance}
+  <div class="split ${S.sel?'':'nosel'}"><section>
+    <div class="sect" style="margin-top:22px"><h2>Échanges</h2><span class="n">${list.length} conversation${list.length>1?'s':''}${S.sfilter?' · filtre actif — <a href="#" data-sfilter="">tout afficher</a>':''}</span><span style="margin-left:auto">${viewSeg}</span></div>
+    ${xgroups}
+    <div class="sect" style="margin-top:26px"><h2>${restTitle}</h2><button class="btn sm" style="margin-left:auto" data-act="toggleRest">${S.showRest?'Masquer':'Afficher'}</button></div>
+    ${S.showRest?restHTML:''}
+  </section>${detailHTML()}</div><div class="backdrop ${S.sel?'open':''}" data-act="closeDetail"></div>`;
+}
+function detailHTML(){
+  const c=CALLS.find(x=>x.id===S.sel);
+  if(!c)return '';
+  const u=userOf(c.user);
+  const kindBtn=k=>`<button class="opt" data-kind="${k}" aria-pressed="${c.kind===k}">${KIND_LABEL[k]}</button>`;
+  const outBtn=k=>`<button class="opt" data-out="${k}" aria-pressed="${c.outcome===k}">${OUTCOME_LABEL[k].replace(' · à qualifier','')}</button>`;
+  return `<aside class="card detail ${S.sel?'open':''}"><div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start"><div><div class="cap" style="color:var(--accent-ink)">Fiche appel · ${dateFR(c.day,true)}</div><div class="serif title">${esc(c.company||c.contact||'Numéro inconnu')}</div><div style="font-size:13px;color:var(--ink-2)">${esc(c.contact||'contact inconnu')}${c.role?' · '+esc(c.role):''}</div></div><button class="btn sm" data-act="closeDetail" aria-label="fermer">✕</button></div>
+   <div class="links">${c.kind==='inconnu'?`<button class="btn sm" data-act="recheck" data-id="${c.id}">${ICON.refresh}Revérifier dans Jarvi</button>`:''}<button class="btn sm" data-act="rec" data-id="${c.id}" ${c.status!=='answered'?'disabled':''}>${ACT_ICON.rec}Enregistrement</button><button class="btn sm" data-act="jcontact" data-id="${c.id}" ${!c.contact||c.kind==='autre'?'disabled':''}>${ACT_ICON.person}Contact Jarvi</button><button class="btn sm" data-act="jcompany" data-id="${c.id}" ${!c.company||c.kind!=='prospection'?'disabled':''}>${ACT_ICON.building}Société Jarvi</button></div>
+   <div class="grid2"><div><div class="cap">Sens</div>${c.dir==='in'?'Entrant':'Sortant'}</div><div><div class="cap">Collaborateur</div>${esc(u.name)}</div><div><div class="cap">Heure</div><span class="num">${c.t}</span></div><div><div class="cap">Durée</div><span class="num">${c.status==='answered'?fmtDur(c.dur):(c.status==='voicemail'?'messagerie':'non décroché')}</span></div><div><div class="cap">Numéro</div><span class="num">${esc(c.number)}</span></div><div><div class="cap">Source</div>${c.source==='webhook'?'webhook Ringover':'API (réconciliation)'}</div></div>
+   <div><div class="cap" style="margin-bottom:6px">Type d'appel</div><div class="opts">${kindBtn('prospection')}${kindBtn('autre')}</div></div>
+   <div><div class="cap" style="margin-bottom:6px">Issue</div><div class="opts">${outBtn('tentative')}${outBtn('bache')}${outBtn('conversation')}${outBtn('rdv')}</div></div>
+   <div><div class="cap" style="margin-bottom:6px">Situation</div><div class="opts">${Object.keys(SITU).filter(k=>k!=='aq'&&k!=='nosum').map(k=>`<button class="opt" data-situ="${k}" aria-pressed="${c.situ===k}">${SITU[k][0]}</button>`).join('')}</div></div>
+   <div class="field"><label for="summary">Résumé de l'échange</label><textarea id="summary" placeholder="Généré depuis la transcription Ringover ; corrigez librement.">${esc(c.summary||'')}</textarea></div>
+   <div class="field"><label for="next">Étape suivante</label><input id="next" value="${esc(c.next||'')}" placeholder="Relance, rendez-vous, personne à appeler…"></div>
+   <div style="display:flex;gap:8px"><button class="btn primary" data-act="save" style="flex:1">Enregistrer</button></div>
+   <div class="hist">${c.history.slice().reverse().map(h=>`<span><span class="num">${h.at}</span> · ${esc(h.who==='auto'?'automatique':h.who)} · ${esc(h.txt)}</span>`).join('')}</div></aside>`;
+}
+function weekDays(m){return [0,1,2,3,4].map(i=>addDays(m,i))}
+function viewSemaine(){
+  const days=weekDays(S.week);const prev=weekDays(addDays(S.week,-7));
+  const wc=CALLS.filter(c=>days.includes(c.day)&&c.kind!=='autre'&&(S.who==='all'||c.user===S.who));const pc=CALLS.filter(c=>prev.includes(c.day)&&(S.who==='all'||c.user===S.who));
+  const f=funnel(wc),g=funnel(pc);
+  const per=days.map(d=>{const x=funnel(wc.filter(c=>c.day===d));return{d,...x}});const max=Math.max(1,...per.map(x=>x.tent));
+  const delta=(a,b)=>{if(!b)return'';const d=a-b;return`<span class="delta ${d>=0?'up':'down'}">${d>=0?'+':''}${d} vs S-1</span>`};
+  const top={};wc.filter(c=>c.kind==='prospection'&&c.status==='answered').forEach(c=>{top[c.company]=(top[c.company]||0)+1});const topL=Object.entries(top).sort((a,b)=>b[1]-a[1]).slice(0,6);
+  const bars=per.map(x=>`<div class="bar ${x.d===TODAY?'today':''}"><div class="tip">${cap(dateFR(x.d))} · ${x.tent} tentatives · ${x.eue} personne eue · ${x.conv} conversations · ${x.rdv} RDV</div><button class="stack" data-goday="${x.d}" aria-label="ouvrir ${dateFR(x.d)}" style="height:100%;justify-content:flex-end"><span class="b1" style="height:${Math.max(0,(x.tent-x.eue)/max*100)}%"></span><span class="b2" style="height:${x.eue/max*100}%"></span></button><span class="lbl">${FR_D[new Date(x.d+'T12:00:00').getDay()].slice(0,3)}. ${new Date(x.d+'T12:00:00').getDate()}</span></div>`).join('');
+  const stage=(l,v,e,d)=>`<div class="card kpi"><span class="cap">${l}</span><span class="v num">${v} <small style="font-size:13px;color:var(--muted);font-family:'Instrument Sans',sans-serif">${e||''}</small></span><span class="d">${d}</span></div>`;
+  return `<div class="head"><div><div class="cap">Semaine ${weekNum(S.week)}</div><h1>${cap(dateFR(days[0]))} → ${dateFR(days[4])}</h1><div class="sub">${days.filter(d=>DAY_STATUS[d]?.complete===false).length?`<span class="pill crit">${days.filter(d=>DAY_STATUS[d]?.complete===false).length} journée incomplète — chiffres sous-estimés</span>`:`<span class="pill good">${ICON.check}Journées contrôlées complètes</span>`}</div></div>
+   <div class="toolbar"><span class="seg"><button data-week="-1" aria-label="semaine précédente">${ICON.left}</button><button data-week="0">Cette semaine</button><button data-week="1" ${S.week>=monday(TODAY)?'disabled':''} aria-label="semaine suivante">${ICON.right}</button></span><button class="btn" data-act="export">Exporter la semaine</button></div></div>
+  <div class="chips"><button class="chip" data-who="all" aria-pressed="${S.who==='all'}">Toute l'équipe</button>${USERS.filter(u=>u.active).map(u=>`<button class="chip" data-who="${u.id}" aria-pressed="${S.who===u.id}">${u.name}</button>`).join('')}</div>
+  <div style="height:16px"></div>
+  <div class="kpis">${stage('Tentatives',f.tent,delta(f.tent,g.tent),'appels sortants composés')}${stage('Personne eue',f.eue,pct(f.eue,f.tent),'décroché')}${stage('Vraies conversations',f.conv,pct(f.conv,f.eue),'information exploitable')}${stage('Rendez-vous',f.rdv,delta(f.rdv,g.rdv),'pris cette semaine')}</div>
+  <div class="split" style="grid-template-columns:minmax(0,1.6fr) minmax(0,1fr)"><section class="card" style="padding:18px 20px"><div class="sect"><h2>Appels de prospection par jour</h2><span class="n">clic sur une barre pour ouvrir la journée</span></div><div class="wk"><div class="bars">${bars}</div><div class="legend"><span><i style="background:var(--bar)"></i>Personne eue</span><span><i style="background:var(--bar-2)"></i>Sans réponse ou messagerie</span></div></div></section>
+   <section class="card" style="padding:18px 20px"><div class="sect"><h2>Entreprises touchées</h2><span class="n">${Object.keys(top).length}</span></div><table><tbody>${topL.map(([n,v])=>`<tr><td style="padding-left:0">${esc(n)}</td><td class="num" style="text-align:right;padding-right:0">${v} échange${v>1?'s':''}</td></tr>`).join('')||'<tr><td class="empty">Aucun échange</td></tr>'}</tbody></table>
+    <div class="sect" style="margin-top:18px"><h2>Rendez-vous</h2></div>${wc.filter(c=>c.outcome==='rdv').map(c=>`<div style="display:flex;justify-content:space-between;gap:10px;padding:6px 0;border-top:1px solid var(--hair);font-size:13px"><span><b style="font-weight:600">${esc(c.company)}</b> · ${esc(c.contact)}</span><span style="color:var(--muted)">${dateFR(c.day,true)} · ${esc(userOf(c.user).name)}</span></div>`).join('')||'<div class="empty" style="padding:14px">Aucun rendez-vous cette semaine</div>'}</section></div>`;
+}
+function viewQualifier(){
+  const q=toQualify().sort((a,b)=>(b.day+b.t).localeCompare(a.day+a.t));
+  const filt=S.qf||'all';const list=q.filter(c=>filt==='all'||(filt==='inconnu'?c.kind==='inconnu':c.outcome==='court'));
+  const nInc=q.filter(c=>c.kind==='inconnu').length,nCourt=q.filter(c=>c.outcome==='court').length;
+  const intro=`<div class="card" style="padding:14px 18px;display:flex;gap:14px;flex-wrap:wrap;align-items:center;margin-bottom:16px"><div style="flex:1;min-width:240px;font-size:13.5px;color:var(--ink-2)">Deux questions par appel, puis <b>Valider</b>. <b>Est-ce de la prospection</b> (le numéro n'est pas dans le CRM Jarvi) et <b>ce que ça a donné</b>. Les appels arrivent ici quand le numéro est absent du CRM ou quand l'appel a duré moins d'une minute. Tant qu'ils ne sont pas tranchés, ils restent dans le rapport du jour avec l'étiquette « À qualifier ».</div><button class="btn" data-act="recheckAll" ${nInc?'':'disabled'}>${ICON.refresh}Revérifier les ${nInc} inconnus dans Jarvi</button><div class="chips"><button class="chip" data-qf="all" aria-pressed="${filt==='all'}">Tous · ${q.length}</button><button class="chip" data-qf="inconnu" aria-pressed="${filt==='inconnu'}">Numéro inconnu · ${nInc}</button><button class="chip" data-qf="court" aria-pressed="${filt==='court'}">Appel court · ${nCourt}</button></div></div>`;
+  if(!q.length)return `<div class="head"><div><h1>À qualifier</h1><div class="sub">Tout est à jour.</div></div></div><div class="card empty">Aucun appel en attente. Les appels inconnus de Jarvi et les appels courts arrivent ici automatiquement.</div>`;
+  const why=c=>c.kind==='inconnu'?`<span class="pill warn">Numéro absent de Jarvi${c.rechecked?' · revérifié':''}</span>`:`<span class="pill warn">Appel court · ${fmtDur(c.dur)}</span>`;
+  const ok=c=>c.kind!=='inconnu'&&c.outcome!=='court';
+  const items=list.map(c=>`<div class="qitem ${S.qOpen===c.id?'open':''}" id="q${c.id}">
+    <div class="qhead"><div><div class="cap">${dateFR(c.day,true)} · ${c.t} · ${esc(userOf(c.user).name)} · ${c.dir==='in'?'entrant':'sortant'}</div><div class="qtitle">${esc(c.company||(c.contact?c.contact:'Numéro inconnu'))}${c.company&&c.contact?` <span style="color:var(--muted);font-weight:400">· ${esc(c.contact)}${c.role?', '+esc(c.role):''}</span>`:''}</div><div style="font-size:12.5px;color:var(--muted)" class="num">${esc(c.number)} · ${c.status==='answered'?fmtDur(c.dur):(c.status==='voicemail'?'messagerie':'non décroché')}</div></div><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:flex-end">${why(c)}${c.kind==='inconnu'?`<button class="btn sm" data-act="recheck" data-id="${c.id}">${ICON.refresh}Revérifier dans Jarvi</button>`:''}${actions(c,true)}</div></div>
+    <div class="qgrid"><div><div class="qq">1. Est-ce de la prospection ?</div><div class="opts">${['prospection','autre'].map(k=>`<button class="opt" data-qkind="${k}" data-id="${c.id}" aria-pressed="${c.kind===k}">${KIND_LABEL[k]}</button>`).join('')}</div></div>
+      <div><div class="qq">2. Ce que ça a donné</div><div class="opts">${[['tentative','Répondeur / rien'],['bache','Bâché'],['conversation','Vraie conversation'],['rdv','Rendez-vous']].map(([k,l])=>`<button class="opt" data-qout="${k}" data-id="${c.id}" aria-pressed="${c.outcome===k}">${l}</button>`).join('')}</div></div></div>
+    <div class="qfoot"><input class="qnote" data-qnote="${c.id}" placeholder="Note (facultatif) : décideur, besoin, prochaine étape…" value="${esc(c.note)}"><button class="btn primary" data-act="qsave" data-id="${c.id}" ${ok(c)?'':'disabled'} title="${ok(c)?'':'Répondez aux deux questions'}">Valider</button><button class="btn" data-act="qskip" data-id="${c.id}">Plus tard</button></div>
+  </div>`).join('');
+  return `<div class="head"><div><h1>À qualifier</h1><div class="sub">${q.length} appel${q.length>1?'s':''} des 7 derniers jours attendent une réponse${S.qDone?` · ${S.qDone} traité${S.qDone>1?'s':''} aujourd'hui`:''}</div></div></div>${intro}<div class="qlist">${items||'<div class="card empty">Rien dans ce filtre.</div>'}</div>`;
+}
+function viewEquipe(){
+  const days=weekDays(S.week);const wc=CALLS.filter(c=>days.includes(c.day));
+  const rows=USERS.filter(u=>u.active).map(u=>{const m=wc.filter(c=>c.user===u.id);const f=funnel(m);return{u,f,total:m.filter(c=>c.kind!=='autre').length}}).sort((a,b)=>b.f.tent-a.f.tent);
+  const max=Math.max(1,...rows.map(r=>r.f.tent));
+  return `<div class="head"><div><div class="cap">Semaine ${weekNum(S.week)}</div><h1>Collaborateurs</h1><div class="sub">Activité de prospection par personne · ${cap(dateFR(days[0],true))} → ${dateFR(days[4],true)}</div></div><div class="toolbar"><span class="seg"><button data-week="-1" aria-label="semaine précédente">${ICON.left}</button><button data-week="0">Cette semaine</button><button data-week="1" ${S.week>=monday(TODAY)?'disabled':''} aria-label="semaine suivante">${ICON.right}</button></span></div></div>
+  <div class="card tbl"><table><thead><tr><th>Collaborateur</th><th>Tentatives</th><th>Personne eue</th><th>Taux</th><th>Conversations</th><th>RDV</th><th>Appels de prospection</th></tr></thead><tbody>${rows.map(r=>`<tr class="row" data-team="${r.u.id}"><td><span style="display:inline-flex;align-items:center;gap:8px"><span class="av" style="width:24px;height:24px;font-size:10px">${r.u.ini}</span><b style="font-weight:600">${r.u.name}</b></span></td><td class="num"><span style="display:flex;align-items:center;gap:8px"><span style="display:inline-block;height:6px;border-radius:3px;background:var(--bar);width:${Math.round(r.f.tent/max*90)}px"></span>${r.f.tent}</span></td><td class="num">${r.f.eue}</td><td class="num">${pct(r.f.eue,r.f.tent)}</td><td class="num">${r.f.conv}</td><td class="num"><b style="font-weight:600">${r.f.rdv}</b></td><td class="num">${r.total}</td></tr>`).join('')}</tbody></table></div><div style="font-size:12.5px;color:var(--muted);margin-top:8px">Cliquer sur une ligne ouvre la semaine filtrée sur cette personne.</div>`;
+}
+function viewAdmin(){
+  const last=CALLS.filter(c=>c.day===TODAY).slice(-1)[0];
+  return `<div class="head"><div><h1>Administration</h1><div class="sub">Comptes, lignes Ringover, état de la collecte, données.</div></div></div>
+  <div class="admin">
+   <section class="card"><h2>Utilisateurs</h2><div style="font-size:13px;color:var(--ink-2)">Aucune inscription libre : un compte n'existe que s'il est invité ici. Désactiver coupe l'accès immédiatement.</div>
+     <table><thead><tr><th style="padding-left:0">Personne</th><th>Rôle</th><th style="text-align:right;padding-right:0">Actif</th></tr></thead><tbody>${USERS.map(u=>`<tr><td style="padding-left:0"><b style="font-weight:600">${u.name}</b><span class="s">${esc(u.email)}</span></td><td><select data-role="${u.id}" ${u.id===S.me.id?'disabled':''} style="padding:5px 8px"><option value="member" ${u.role==='member'?'selected':''}>membre</option><option value="admin" ${u.role==='admin'?'selected':''}>admin</option></select></td><td style="text-align:right;padding-right:0"><button class="switch" role="switch" aria-checked="${u.active}" data-toggle="${u.id}" ${u.id===S.me.id?'disabled':''} aria-label="activer ${u.name}"></button></td></tr>`).join('')}</tbody></table>
+     <div class="row2"><input id="invite" type="email" placeholder="prenom@cabinet-ekinox.fr" style="flex:1;min-width:200px"><button class="btn primary" data-act="invite">Inviter</button></div></section>
+   <section class="card"><h2>Lignes Ringover</h2><div style="font-size:13px;color:var(--ink-2)">Associe chaque ligne Ringover au bon collaborateur (cas des lignes réattribuées).</div>
+     <table><tbody>${USERS.map(u=>`<tr><td style="padding-left:0" class="num">${u.line}</td><td style="padding-right:0"><select data-line="${u.id}" style="width:100%;padding:5px 8px">${USERS.map(v=>`<option ${v.id===u.id?'selected':''}>${v.name}</option>`).join('')}</select></td></tr>`).join('')}</tbody></table></section>
+   <section class="card"><h2>État de la collecte</h2>
+     <div style="display:flex;flex-direction:column;gap:8px;font-size:13.5px"><span><span class="led"></span> Webhook Ringover · dernier événement ${last?last.t:'—'} (${TODAY===S.day?'aujourd’hui':dateFR(TODAY,true)})</span><span><span class="led"></span> Jarvi · 98 % des numéros résolus, cache 30 jours</span><span><span class="led warn"></span> Réconciliation nocturne · 1er sept. incomplète (4 appels manquants), relance prévue 02:00</span><span><span class="led"></span> Signatures invalides sur 7 jours : 0</span></div>
+     <div class="row2"><button class="btn sm" data-act="reconcile">Relancer la réconciliation du 1er sept.</button><button class="btn sm" data-act="testwh">Tester le webhook</button></div>
+     <div style="font-size:12px;color:var(--muted)">URL du webhook : <span class="num">https://mwbwgnulwfyuqgdgwhqg.functions.supabase.co/ringover-webhook</span></div></section>
+   <section class="card"><h2>Données et sécurité</h2>
+     <div class="row2"><label style="flex:1;font-size:13.5px">Conservation des appels</label><select data-ret style="padding:6px 8px">${[12,24,36].map(v=>`<option ${S.retention===v?'selected':''} value="${v}">${v} mois</option>`).join('')}</select></div>
+     <div class="row2"><label style="flex:1;font-size:13.5px">Conservation des événements bruts</label><select data-raw style="padding:6px 8px">${[30,90,180].map(v=>`<option ${S.rawRetention===v?'selected':''} value="${v}">${v} jours</option>`).join('')}</select></div>
+     <div class="row2"><label style="flex:1;font-size:13.5px">MFA obligatoire pour les admins</label><button class="switch" role="switch" aria-checked="true" aria-label="MFA admin"></button></div>
+     <div class="row2"><label style="flex:1;font-size:13.5px">Écoute des enregistrements</label><select style="padding:6px 8px"><option>Tous les membres</option><option>Admins seulement</option></select></div>
+     <div class="row2"><input id="erase" placeholder="Numéro à effacer (droit RGPD)" style="flex:1;min-width:180px"><button class="btn sm danger" data-act="erase">Effacer</button></div>
+     <div style="font-size:12px;color:var(--muted)">Hébergement Supabase Paris (eu-west-3) · chiffrement au repos · journal d'audit conservé</div></section>
+  </div>`;
+}
+
+/* ---------- Interactions ---------- */
+function toast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('on');clearTimeout(t._h);t._h=setTimeout(()=>t.classList.remove('on'),2600)}
+function modal(html){const m=document.getElementById('modal');if(!html){m.classList.remove('open');m.innerHTML='';return}m.innerHTML=`<div class="box">${html}</div>`;m.classList.add('open');m.querySelector('[data-act="closeModal"]')?.focus()}
+function csv(calls){const h=['jour','heure','sens','collaborateur','entreprise','contact','fonction','issue','situation','duree_s','resume','etape_suivante'];return [h.join(';'),...calls.filter(c=>c.kind!=='autre').map(c=>[c.day,c.t,c.dir,userOf(c.user).name,c.company,c.contact,c.role,c.outcome,c.situ?SITU[c.situ][0]:'',c.dur,(c.summary||'').replace(/[\r\n;]+/g,' '),(c.next||'').replace(/[\r\n;]+/g,' ')].map(v=>'"'+String(v??'').replace(/"/g,'""')+'"').join(';'))].join('\n')}
+function go(v){S.view=v;S.sel=null;if(location.hash!=='#'+v)history.replaceState(null,'',(S.view==='login'?'#':'#'+v));render();window.scrollTo(0,0)}
+function record(c,txt){c.history.push({at:TODAY+' '+new Date().toTimeString().slice(0,5),who:S.me.name,txt})}
+function bind(){
+  app.querySelectorAll('[data-act]').forEach(b=>b.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();act(b.dataset.act,b)}));
+  app.querySelectorAll('[data-day]').forEach(b=>b.addEventListener('click',()=>{const n=+b.dataset.day;if(n===0)S.day=TODAY;else{let d=S.day;do{d=addDays(d,n)}while([0,6].includes(new Date(d+'T12:00:00').getDay()));if(d>TODAY)return;S.day=d}S.sel=null;S.stage=null;render()}));
+  app.querySelectorAll('[data-week]').forEach(b=>b.addEventListener('click',()=>{const n=+b.dataset.week;S.week=n===0?monday(TODAY):addDays(S.week,7*n);if(S.week>monday(TODAY))S.week=monday(TODAY);render()}));
+  app.querySelectorAll('[data-who]').forEach(b=>b.addEventListener('click',()=>{S.who=b.dataset.who;S.sel=null;render()}));
+  app.querySelectorAll('[data-stage]').forEach(b=>b.addEventListener('click',()=>{S.stage=S.stage===b.dataset.stage?null:b.dataset.stage;S.sel=null;render()}));
+  app.querySelectorAll('[data-sel]').forEach(b=>{const f=()=>{S.sel=+b.dataset.sel;render();if(window.innerWidth<=1100)document.querySelector('.detail')?.classList.add('open')};b.addEventListener('click',f);b.addEventListener('keydown',e=>{if(e.key==='Enter')f()})});
+  app.querySelectorAll('[data-setday]').forEach(b=>b.addEventListener('click',()=>{S.day=b.dataset.setday;S.mode='day';S.sel=null;S.stage=null;render()}));
+  app.querySelectorAll('[data-wk]').forEach(b=>b.addEventListener('click',()=>{let d=addDays(S.day,7*+b.dataset.wk);while(d>TODAY)d=addDays(d,-1);while([0,6].includes(new Date(d+'T12:00:00').getDay()))d=addDays(d,-1);S.day=d;S.sel=null;render()}));
+  app.querySelectorAll('[data-mode]').forEach(b=>b.addEventListener('click',()=>{S.mode=b.dataset.mode;S.sel=null;S.stage=null;render()}));
+  app.querySelectorAll('[data-preset]').forEach(b=>b.addEventListener('click',()=>{S.mode='range';const p=b.dataset.preset;if(p==='week'){S.from=monday(TODAY);S.to=TODAY}else if(p==='lastweek'){S.from=addDays(monday(TODAY),-7);S.to=addDays(monday(TODAY),-3)}else{S.from=addDays(TODAY,-29);S.to=TODAY}S.sel=null;render()}));
+  app.querySelector('#from')?.addEventListener('change',e=>{S.from=e.target.value;if(S.to<S.from)S.to=S.from;S.mode='range';S.sel=null;render()});
+  app.querySelector('#to')?.addEventListener('change',e=>{S.to=e.target.value;if(S.to<S.from)S.from=S.to;S.mode='range';S.sel=null;render()});
+  app.querySelectorAll('[data-xview]').forEach(b=>b.addEventListener('click',()=>{S.xview=b.dataset.xview;try{localStorage.setItem('rp_xview',S.xview)}catch(e){}render()}));
+  app.querySelectorAll('[data-open]').forEach(b=>b.addEventListener('click',()=>{S.open=S.open===+b.dataset.open?null:+b.dataset.open;render()}));
+  app.querySelectorAll('[data-sfilter]').forEach(b=>b.addEventListener('click',e=>{e.preventDefault();S.sfilter=S.sfilter===b.dataset.sfilter?'':b.dataset.sfilter;S.sel=null;render()}));
+  app.querySelector('#whoSel')?.addEventListener('change',e=>{S.who=e.target.value;S.sel=null;render()});
+  app.querySelectorAll('[data-qf]').forEach(b=>b.addEventListener('click',()=>{S.qf=b.dataset.qf;render()}));
+  app.querySelectorAll('[data-qkind]').forEach(b=>b.addEventListener('click',()=>{const c=CALLS.find(x=>x.id===+b.dataset.id);if(c.kind!==b.dataset.qkind){record(c,'type '+KIND_LABEL[c.kind]+' → '+KIND_LABEL[b.dataset.qkind]);c.kind=b.dataset.qkind}render()}));
+  app.querySelectorAll('[data-qout]').forEach(b=>b.addEventListener('click',()=>{const c=CALLS.find(x=>x.id===+b.dataset.id);if(c.outcome!==b.dataset.qout){record(c,'issue '+OUTCOME_LABEL[c.outcome]+' → '+OUTCOME_LABEL[b.dataset.qout]);c.outcome=b.dataset.qout}render()}));
+  app.querySelectorAll('[data-qnote]').forEach(i=>i.addEventListener('input',()=>{const c=CALLS.find(x=>x.id===+i.dataset.qnote);c.note=i.value}));
+  app.querySelectorAll('[data-goday]').forEach(b=>b.addEventListener('click',()=>{S.day=b.dataset.goday;go('jour')}));
+  app.querySelectorAll('[data-team]').forEach(b=>b.addEventListener('click',()=>{S.who=b.dataset.team;go('semaine')}));
+  app.querySelectorAll('[data-situ]').forEach(b=>b.addEventListener('click',()=>{const c=current();if(!c)return;if(c.situ!==b.dataset.situ){record(c,'situation → '+SITU[b.dataset.situ][0]);c.situ=b.dataset.situ;if(b.dataset.situ==='rdv')c.outcome='rdv';else if(c.outcome==='rdv')c.outcome='conversation';if(!c.summary)c.summary='';if(!c.next)c.next=NEXT[b.dataset.situ]||''}render()}));
+  app.querySelectorAll('[data-kind]').forEach(b=>b.addEventListener('click',()=>{const c=current();if(!c)return;if(c.kind!==b.dataset.kind){record(c,'type '+KIND_LABEL[c.kind]+' → '+KIND_LABEL[b.dataset.kind]);c.kind=b.dataset.kind;c.pending=true}render()}));
+  app.querySelectorAll('[data-out]').forEach(b=>b.addEventListener('click',()=>{const c=current();if(!c)return;if(c.outcome!==b.dataset.out){record(c,'issue '+OUTCOME_LABEL[c.outcome]+' → '+OUTCOME_LABEL[b.dataset.out]);c.outcome=b.dataset.out;c.pending=true}render()}));
+  app.querySelectorAll('[data-toggle]').forEach(b=>b.addEventListener('click',()=>{const u=userOf(b.dataset.toggle);u.active=!u.active;toast(u.active?u.name+' réactivé·e — accès rétabli':u.name+' désactivé·e — accès coupé immédiatement');render()}));
+  app.querySelectorAll('[data-role]').forEach(s=>s.addEventListener('change',()=>{const u=userOf(s.dataset.role);u.role=s.value;toast(u.name+' est maintenant '+(s.value==='admin'?'admin (MFA requise)':'membre'))}));
+  app.querySelectorAll('[data-line]').forEach(s=>s.addEventListener('change',()=>toast('Ligne réattribuée à '+s.value+' — les prochains appels lui seront comptés')));
+  app.querySelector('[data-ret]')?.addEventListener('change',e=>{S.retention=+e.target.value;toast('Conservation des appels : '+S.retention+' mois')});
+  app.querySelector('[data-raw]')?.addEventListener('change',e=>{S.rawRetention=+e.target.value;toast('Événements bruts conservés '+S.rawRetention+' jours')});
+  app.querySelector('#showAll')?.addEventListener('change',e=>{S.showAll=e.target.checked;render()});
+  app.querySelector('#em')?.addEventListener('input',e=>S.email=e.target.value);
+  app.querySelectorAll('#mfa input').forEach((i,k,all)=>i.addEventListener('input',()=>{if(i.value&&all[k+1])all[k+1].focus()}));
+  app.querySelectorAll('a[href="#logout"]').forEach(a=>a.addEventListener('click',e=>{e.preventDefault();S.loginStep=0;go('login');toast('Déconnecté')}));
+}
+function recheck(xs){let found=0;xs.forEach(x=>{x.rechecked=(x.rechecked||0)+1;if(x.id%3===0){const co=pick(COMPANIES);x.company=co[0];x.role=co[1];x.contact=co[2];x.kind='prospection';x.needsReview=x.outcome==='court';if(!x.needsReview)x.qualified=true;record(x,'trouvé dans le CRM Jarvi à la revérification : '+co[2]+' ('+co[0]+')');found++}else{record(x,'revérification Jarvi : numéro toujours absent')}});toast(found?`${found} numéro${found>1?'s':''} trouvé${found>1?'s':''} dans le CRM Jarvi · classé${found>1?'s':''} prospection`:'Aucun numéro trouvé dans Jarvi — toujours inconnu'+(xs.length===1?'':'s'))}
+function current(){if(S.view==='qualifier')return toQualify().sort((a,b)=>(b.day+b.t).localeCompare(a.day+a.t))[0];return CALLS.find(x=>x.id===S.sel)}
+const INVITED=USERS.map(u=>u.email);
+function act(a,b){
+  const c=current();
+  switch(a){
+    case 'magic':{const em=(document.getElementById('em')?.value||'').trim().toLowerCase();S.email=em;if(!em.endsWith('@cabinet-ekinox.fr')){S.loginErr="Cette adresse n'est pas une adresse Ekinox.";render();return}const u=USERS.find(x=>x.email===em);if(!u||!u.active){S.loginErr="Cette adresse n'a pas été invitée. Demandez l'accès à Adrien.";render();return}S.loginErr='';S.me=u;S.loginStep=1;render();break}
+    case 'google':{S.loginErr='';S.me=USERS[0];S.loginStep=S.me.role==='admin'?2:0;if(S.loginStep===0){go('jour');toast('Connecté via Google Workspace')}else render();break}
+    case 'openlink':{S.loginStep=S.me.role==='admin'?2:0;if(S.loginStep===0){go('jour');toast('Connecté · session valable 12 h')}else render();break}
+    case 'mfa':{go('jour');toast('Connecté · MFA vérifiée · session 12 h');break}
+    case 'back':{S.loginStep=0;render();break}
+    case 'closeDetail':{S.sel=null;render();break}
+    case 'toggleRest':{S.showRest=!S.showRest;render();break}
+    case 'recheck':{const x=CALLS.find(v=>v.id===+b.dataset.id);if(!x)return;toast('Recherche du numéro dans Jarvi…');setTimeout(()=>{recheck([x]);render()},700);break}
+    case 'recheckAll':{const xs=toQualify().filter(v=>v.kind==='inconnu');toast('Recherche de '+xs.length+' numéros dans Jarvi…');setTimeout(()=>{recheck(xs);render()},900);break}
+    case 'save':{if(!c)return;const sm=document.getElementById('summary'),nx=document.getElementById('next');if(sm&&sm.value!==(c.summary||'')){c.summary=sm.value;record(c,'résumé modifié')}if(nx&&nx.value!==(c.next||'')){c.next=nx.value;record(c,'étape suivante modifiée')}c.pending=false;toast('Fiche enregistrée · correction tracée');render();break}
+    case 'qsave':{const x=CALLS.find(v=>v.id===+b.dataset.id);if(!x)return;x.qualified=true;record(x,'qualifié');S.qDone=(S.qDone||0)+1;toast('Qualifié : '+KIND_LABEL[x.kind]+' · '+OUTCOME_LABEL[x.outcome]);render();break}
+    case 'qskip':{const x=CALLS.find(v=>v.id===+b.dataset.id);if(!x)return;x.qualified=true;x.skipped=true;toast('Reporté — reviendra dans la file demain');render();break}
+    case 'rec':{const x=CALLS.find(v=>v.id===+b.dataset.id);modal(`<h2 style="font-size:22px">Enregistrement · ${esc(x.company||x.contact||'appel')}</h2><p style="margin:0;color:var(--ink-2)">${esc(dateFR(x.day,true))} à ${x.t} · ${fmtDur(x.dur)} · ${esc(userOf(x.user).name)}. L'audio reste chez Ringover : il s'ouvre dans votre compte Ringover et l'écoute est journalisée.</p><div style="display:flex;gap:8px;justify-content:flex-end"><button class="btn" data-act="closeModal">Annuler</button><button class="btn primary" data-act="closeModal">${ICON.play}Ouvrir dans Ringover</button></div>`);break}
+    case 'jcontact':{const x=CALLS.find(v=>v.id===+b.dataset.id);toast('Ouvre la fiche Jarvi de '+(x.contact||'ce contact')+' (nouvel onglet)');break}
+    case 'jcompany':{const x=CALLS.find(v=>v.id===+b.dataset.id);toast('Ouvre la fiche Jarvi de la société '+(x.company||'')+' (nouvel onglet)');break}
+    case 'listen':{modal(`<h2 style="font-size:22px">Écouter dans Ringover</h2><p style="margin:0;color:var(--ink-2)">L'enregistrement n'est jamais copié dans l'application : il s'ouvre dans Ringover, avec votre propre compte, et l'écoute est journalisée.</p><div style="display:flex;gap:8px;justify-content:flex-end"><button class="btn" data-act="closeModal">Annuler</button><button class="btn primary" data-act="closeModal">Ouvrir Ringover</button></div>`);break}
+    case 'jarvi':{toast('Ouvre la fiche dans Jarvi (nouvel onglet)');break}
+    case 'export':{const set=S.view==='jour'?dayCalls():CALLS.filter(x=>weekDays(S.week).includes(x.day));const txt=csv(set);modal(`<h2 style="font-size:22px">Export CSV · ${set.length} appels</h2><p style="margin:0;color:var(--ink-2);font-size:13px">Séparateur « ; », encodage UTF-8, numéros masqués. L'export est journalisé (qui, quand, quelle période).</p><pre>${esc(txt)}</pre><div style="display:flex;gap:8px;justify-content:flex-end"><button class="btn" data-act="closeModal">Fermer</button><button class="btn primary" data-act="copy">Copier</button></div>`);document.getElementById('modal')._txt=txt;break}
+    case 'copy':{navigator.clipboard?.writeText(document.getElementById('modal')._txt||'').then(()=>toast('CSV copié'),()=>toast('Copie impossible ici'));break}
+    case 'closeModal':{modal(null);break}
+    case 'invite':{const i=document.getElementById('invite');const em=(i.value||'').trim().toLowerCase();if(!em.endsWith('@cabinet-ekinox.fr')){toast('Seules les adresses @cabinet-ekinox.fr peuvent être invitées');return}if(INVITED.includes(em)){toast('Déjà invité·e');return}const name=cap(em.split('@')[0].split('.')[0]);USERS.push({id:'u'+Date.now(),name,ini:name.slice(0,2).toUpperCase(),email:em,role:'member',active:true,line:'—'});INVITED.push(em);toast('Invitation envoyée à '+em);render();break}
+    case 'reconcile':{DAY_STATUS['2026-09-01'].complete=true;DAY_STATUS['2026-09-01'].webhook=DAY_STATUS['2026-09-01'].api;toast('Réconciliation terminée · 4 appels récupérés via l’API Ringover');render();break}
+    case 'testwh':{toast('Événement de test reçu · signature valide · 204');break}
+    case 'erase':{const v=(document.getElementById('erase').value||'').trim();if(!v){toast('Indiquez un numéro');return}modal(`<h2 style="font-size:22px">Effacer ${esc(v)} ?</h2><p style="margin:0;color:var(--ink-2)">Tous les appels, notes et corrections liés à ce numéro seront supprimés définitivement. L'opération est journalisée.</p><div style="display:flex;gap:8px;justify-content:flex-end"><button class="btn" data-act="closeModal">Annuler</button><button class="btn primary" data-act="closeModal" style="background:var(--crit);border-color:var(--crit)">Effacer définitivement</button></div>`);break}
+  }
+}
+document.getElementById('modal').addEventListener('click',e=>{const b=e.target.closest('[data-act]');if(b)act(b.dataset.act,b);else if(e.target===e.currentTarget)modal(null)});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){modal(null);if(S.sel){S.sel=null;render()}}});
+window.addEventListener('hashchange',()=>{const v=location.hash.slice(1);if(S.view==='login')return;if(['jour','semaine','qualifier','equipe','admin'].includes(v)&&v!==S.view)go(v)});
+render();
+</script>
+
+</body>
+</html>
