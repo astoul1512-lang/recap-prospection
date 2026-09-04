@@ -178,6 +178,22 @@ export async function ecrireCacheJarvi(ligne: Record<string, unknown>): Promise<
   return r.ok;
 }
 
+// --- Transcriptions ----------------------------------------------------------
+
+// Le plan de travail vient de la vue, pas d'un filtre recopié ici : une seule
+// définition de « ce qu'il manque », partagée avec l'écran d'administration.
+export async function appelsSansTranscription(
+  limite: number,
+  essaisMax: number,
+): Promise<Record<string, unknown>[]> {
+  const r = await rest(
+    `v_sans_transcription?transcript_attempts=lt.${essaisMax}` +
+      `&select=call_id,duration_s,transcript_attempts&order=started_at.desc&limit=${limite}`,
+  );
+  if (!r.ok) return [];
+  return (await corpsJson(r)) as Record<string, unknown>[];
+}
+
 // --- Journal des corrections et des usages -----------------------------------
 
 export async function journaliserCorrection(ligne: Record<string, unknown>): Promise<boolean> {

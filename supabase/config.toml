@@ -21,3 +21,6 @@ verify_jwt = true
 # sont mis en forme par une tâche Claude planifiée (docs/decisions.md, D1).
 # verify_jwt vaut true par défaut : ne jamais le passer à false ailleurs
 # qu'au-dessus, pour ringover-webhook (contrôle n°8 de scripts/verifier.sh).
+
+[functions.fetch-transcript]
+verify_jwt = true

@@ -162,6 +162,130 @@ export function collaborateur(appel: AppelRingover): {
   return { ringover_user_id: id, display_name: nom, email: texte(u.email) || null };
 }
 
+// --- Transcriptions ----------------------------------------------------------
+//
+// L'option de transcription est active sur le compte Ekinox : le skill de
+// préqualification l'utilise en production depuis juillet 2026. Elle ne dépend
+// pas des permissions de la clé mais d'un réglage d'équipe — si elle était
+// coupée, l'endpoint répondrait 401 et il faudrait le voir tout de suite,
+// d'où le détail rapporté par `SondeTranscription`.
+
+export type SondeTranscription = {
+  call_id: string;
+  http: number;
+  etat: string | null;
+  clefs: string[];
+  segments: number | null;
+  langue: string | null;
+  caracteres: number | null;
+};
+
+export type ResultatTranscription =
+  | { etat: "prete"; texte: string; langue: string | null; sonde: SondeTranscription }
+  | { etat: "en_cours"; sonde: SondeTranscription }
+  | { etat: "absente"; sonde: SondeTranscription }
+  | { etat: "refuse"; sonde: SondeTranscription }
+  | { etat: "injoignable"; motif: string };
+
+function texteBrut(v: unknown): string {
+  return typeof v === "string" ? v.trim() : "";
+}
+
+// Une transcription diarisée : `speeches[]` porte qui parle (`speaker_id` 0 ou
+// 1) et ce qui est dit. On en fait un texte lisible, une réplique par ligne —
+// c'est ce que la routine lira, et ce que l'équipe verra dans la fiche appel.
+export function assemblerParoles(donnees: unknown): { texte: string; segments: number } {
+  const o = (donnees && typeof donnees === "object") ? donnees as Record<string, unknown> : {};
+  const brut = Array.isArray(o.speeches) ? o.speeches : (Array.isArray(o.segments) ? o.segments : []);
+  const lignes: string[] = [];
+  for (const p of brut) {
+    if (typeof p === "string") {
+      if (p.trim()) lignes.push(p.trim());
+      continue;
+    }
+    if (!p || typeof p !== "object") continue;
+    const s = p as Record<string, unknown>;
+    const dit = texteBrut(s.content) || texteBrut(s.text) || texteBrut(s.transcript);
+    if (!dit) continue;
+    const qui = s.speaker_id ?? s.speakerId ?? s.channelId ?? s.channel_id;
+    // Canal 1 = l'appelant, canal 0 = l'appelé (documentation Ringover).
+    const etiquette = qui === 0 || qui === "0"
+      ? "Collaborateur"
+      : (qui === 1 || qui === "1" ? "Interlocuteur" : null);
+    lignes.push(etiquette ? `${etiquette} : ${dit}` : dit);
+  }
+  return { texte: lignes.join("\n"), segments: lignes.length };
+}
+
+export async function transcription(callId: string): Promise<ResultatTranscription> {
+  const cle = Deno.env.get("ringover");
+  if (!cle) return { etat: "injoignable", motif: "cle_absente" };
+
+  let reponse: Response;
+  try {
+    reponse = await avecReprise(() =>
+      fetchAvecDelai(`${BASE}/transcriptions/${encodeURIComponent(callId)}`, {
+        headers: { Authorization: cle, Accept: "application/json" },
+      })
+    );
+  } catch {
+    return { etat: "injoignable", motif: "reseau" };
+  }
+
+  const sonde: SondeTranscription = {
+    call_id: callId,
+    http: reponse.status,
+    etat: null,
+    clefs: [],
+    segments: null,
+    langue: null,
+    caracteres: null,
+  };
+
+  // 204 : la requête est passée, il n'y a simplement rien encore.
+  if (reponse.status === 204) return { etat: "en_cours", sonde };
+  if (reponse.status === 404) return { etat: "absente", sonde };
+  if (reponse.status === 401 || reponse.status === 403) {
+    await reponse.body?.cancel();
+    return { etat: "refuse", sonde };
+  }
+  if (!reponse.ok) {
+    await reponse.body?.cancel();
+    return { etat: "injoignable", motif: `http_${reponse.status}` };
+  }
+
+  let charge: Record<string, unknown>;
+  try {
+    charge = await reponse.json() as Record<string, unknown>;
+  } catch {
+    return { etat: "injoignable", motif: "reponse_illisible" };
+  }
+
+  // La réponse enveloppe parfois la transcription dans une liste : on accepte
+  // les deux formes plutôt que de parier sur celle qu'on verra.
+  const liste = Array.isArray(charge.list) ? charge.list : (Array.isArray(charge.data) ? charge.data : null);
+  const noyau = (liste && liste[0] && typeof liste[0] === "object")
+    ? liste[0] as Record<string, unknown>
+    : charge;
+
+  sonde.clefs = Object.keys(noyau).slice(0, 25);
+  sonde.etat = texteBrut(noyau.transcription_status) || texteBrut(noyau.status) || null;
+  sonde.langue = texteBrut(noyau.language) || texteBrut(noyau.lang) || null;
+
+  const donnees = noyau.transcription_data ?? noyau.transcription ?? noyau;
+  const { texte, segments } = assemblerParoles(donnees);
+  sonde.segments = segments;
+  sonde.caracteres = texte.length;
+
+  // Ringover annonce lui-même quand la transcription est terminée. Tant qu'elle
+  // ne l'est pas, on ne prend rien : une transcription partielle donnerait un
+  // résumé faux, et un résumé faux ne se voit pas.
+  const terminee = (sonde.etat ?? "").toUpperCase() === "DONE" || (!sonde.etat && texte.length > 0);
+  if (!terminee || !texte) return { etat: "en_cours", sonde };
+
+  return { etat: "prete", texte, langue: sonde.langue, sonde };
+}
+
 export type EtatAppel = "answered" | "missed" | "voicemail" | "ended";
 
 // `last_state` est la façon dont Ringover clôt un appel. La liste est celle de
