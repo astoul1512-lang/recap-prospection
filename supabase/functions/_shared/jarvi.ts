@@ -69,7 +69,15 @@ function societe(brut: Record<string, unknown>): { id: string | null; nom: strin
     const entreprise = (o.company && typeof o.company === "object")
       ? o.company as Record<string, unknown>
       : o;
-    const nom = texte(entreprise.name) || texte(entreprise.companyName);
+    // Beaucoup de sociétés ont été créées dans Jarvi depuis une adresse
+    // LinkedIn : leur `name` est alors l'identifiant de l'URL
+    // (« swiss-life-banque-privee ») et non le nom qu'on lit sur la fiche
+    // (« Swiss Life Banque Privée »). Le vrai nom, quand il existe, est dans
+    // les données LinkedIn rattachées — on le préfère.
+    const linkedin = (entreprise.linkedinCompanyData && typeof entreprise.linkedinCompanyData === "object")
+      ? entreprise.linkedinCompanyData as Record<string, unknown>
+      : {};
+    const nom = texte(linkedin.name) || texte(entreprise.name) || texte(entreprise.companyName);
     const id = texte(entreprise.id) || texte(entreprise.companyId);
     if (nom || id) return { id: id || null, nom: nom || null };
   }

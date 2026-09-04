@@ -181,3 +181,50 @@ retirerait du dénominateur des appels souvent restés sans réponse.
 
 Les quatre chiffres de l'entonnoir portent donc sur le même ensemble : les
 appels du rapport, prospection et inconnus, hors internes et anonymes.
+
+---
+
+## D5 — « Personne eue » exige trente secondes
+
+**Décidé le 4 septembre 2026, par Adrien, sur les chiffres du premier jour.**
+
+### Ce que dit la spécification
+
+`SPECS.md` §1.2 : « Personne eue = appel décroché (`status = answered`),
+messageries exclues. »
+
+### Ce qui a été constaté
+
+Le premier vrai rapport annonçait **36 personnes eues sur 44 appels — 82 %**.
+Sur ces 36, **24 avaient duré moins de dix secondes**.
+
+Ringover marque « décroché » à la seconde où la ligne se connecte : un serveur
+vocal, un raccrochage immédiat, une erreur de numéro entraient tous dans le
+compte. Le deuxième chiffre de l'entonnoir — celui qu'on lit en premier, celui
+qui dit si la journée a été bonne — était faux, et faux dans le sens flatteur.
+
+### La règle retenue
+
+Une personne a été eue si l'appel a été décroché **et** :
+
+- qu'il a duré **trente secondes ou plus**, **ou**
+- qu'un humain l'a qualifié `bache`, `conversation` ou `rdv` dans la file
+  « À qualifier ».
+
+La seconde branche n'est pas un détail : un refus sec de six secondes est un
+refus qu'on a bel et bien entendu, et il doit compter. C'est l'application de
+la règle §1.1.6 — la correction humaine prime toujours sur l'automatique.
+
+### Ce que ça coûte
+
+Un appel utile de vingt secondes ne compte pas tant que personne ne l'a
+qualifié. C'est le bon sens du compromis : il vaut mieux un chiffre prudent
+qu'un chiffre flatteur, et la file existe précisément pour rattraper les cas
+limites.
+
+### Où c'est écrit
+
+Deux endroits, qui doivent rester d'accord : `web/format.js`
+(`SEUIL_PERSONNE_EUE_S`, ce que l'écran affiche) et la vue `v_funnel_day`
+(migration `20260904050000`). Changer l'un sans l'autre ferait diverger le
+rapport et la base.

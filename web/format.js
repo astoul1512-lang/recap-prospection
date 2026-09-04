@@ -179,6 +179,24 @@ export function etatAppel(c) {
   return 'non décroché';
 }
 
+// Durée en dessous de laquelle on n'a pas eu la personne au téléphone.
+// Ringover marque « décroché » dès que la ligne se connecte : un serveur vocal,
+// un raccrochage immédiat, une erreur de numéro comptaient donc comme des
+// personnes jointes. Sur la première vraie journée, 24 des 36 « personnes eues »
+// duraient moins de dix secondes — un taux de décroché de 82 % qui ne voulait
+// rien dire. Seuil fixé par Adrien le 4 septembre 2026 (docs/decisions.md, D5).
+export const SEUIL_PERSONNE_EUE_S = 30;
+
+// Une personne a été eue si la ligne a tenu, **ou** si un humain a tranché que
+// l'appel avait donné quelque chose. La correction manuelle prime toujours
+// (SPECS §1.1.6) : un refus sec de six secondes reste un refus qu'on a
+// entendu, et il doit compter.
+export function personneEue(c) {
+  if (c.status !== 'answered') return false;
+  if (['bache', 'conversation', 'rdv'].includes(c.outcome_manual)) return true;
+  return (c.duration_s || 0) >= SEUIL_PERSONNE_EUE_S;
+}
+
 // L'entonnoir (SPECS §1.2). Il porte sur les appels du rapport — prospection
 // **et** numéros encore inconnus : un numéro qu'on n'a pas su rattacher reste
 // un appel qu'on a bel et bien composé. C'est la définition de §1.2 et celle de
@@ -187,7 +205,7 @@ export function etatAppel(c) {
 export function entonnoir(appels) {
   return {
     tentatives: appels.filter((c) => c.direction === 'out').length,
-    eue: appels.filter((c) => c.status === 'answered').length,
+    eue: appels.filter(personneEue).length,
     conversations: appels.filter((c) => c.outcome_eff === 'conversation' || c.outcome_eff === 'rdv').length,
     rdv: appels.filter((c) => c.outcome_eff === 'rdv').length,
   };
