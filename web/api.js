@@ -112,10 +112,14 @@ export async function monProfil() {
 
 // --- Lecture ------------------------------------------------------------------
 
+// La transcription n'est pas dans cette liste, et c'est délibéré : l'écran du
+// jour charge cinquante appels d'un coup. La fiche appel va la chercher à
+// l'unité, quand on la déplie.
 const CHAMPS_APPEL = 'call_id, day, started_at, direction, external_number, duration_s, status, ' +
   'kind_eff, outcome_eff, kind_manual, outcome_manual, situation, summary, next_step, ' +
   'needs_review, review_reason, jarvi_check_count, company_name, contact_name, contact_role, ' +
-  'record_link, jarvi_profile_id, jarvi_company_id, user_name, ringover_user_id, source, machine_detection';
+  'record_link, jarvi_profile_id, jarvi_company_id, user_name, ringover_user_id, source, ' +
+  'machine_detection, a_transcription';
 
 export async function appels(du, au) {
   const { data, error } = await db()
@@ -177,6 +181,26 @@ export async function toutesLesLignes() {
     .order('display_name');
   if (error) throw error;
   return data ?? [];
+}
+
+// Chargée seulement quand on déplie « Transcription » dans la fiche appel :
+// c'est le seul endroit où quelqu'un veut vraiment lire l'échange.
+export async function transcription(callId) {
+  const { data, error } = await db()
+    .from('calls')
+    .select('transcript, transcript_fetched_at, transcript_attempts')
+    .eq('call_id', callId)
+    .limit(1);
+  if (error) throw error;
+  return data?.[0] ?? null;
+}
+
+export async function nombreSansTranscription() {
+  const { count, error } = await db()
+    .from('v_sans_transcription')
+    .select('call_id', { count: 'exact', head: true });
+  if (error) throw error;
+  return count ?? 0;
 }
 
 export async function passagesTaches() {

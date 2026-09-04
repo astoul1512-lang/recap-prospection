@@ -7,6 +7,7 @@
 
 import {
   cap, clefSituation, dateFR, duree, dureeCourte, ecart, entonnoir, esc, estConversation,
+  texteResume,
   etatAppel, ETIQUETTES, heureFR, initiales, joursSemaine, LIBELLE_GENRE, LIBELLE_ISSUE,
   lundiDe, numeroMasque, numeroSemaine, ORDRE_SITUATIONS, pourcent, SITUATIONS,
 } from './format.js';
@@ -58,7 +59,9 @@ export function actions(c, grand) {
 export function pastilleSituation(c) {
   let clef = c.situation;
   if (!clef && c.needs_review) clef = 'aq';
-  if (!clef && estConversation(c)) clef = 'nosum';
+  // Sans transcription, il n'y a rien à faire qu'attendre ; avec
+  // transcription mais sans résumé, c'est la routine qui est en retard.
+  if (!clef && estConversation(c)) clef = c.a_transcription === false ? 'attente' : 'nosum';
   if (!clef) return '';
   const [libelle, classe] = SITUATIONS[clef] || ETIQUETTES[clef];
   return `<span class="pill ${classe}">${esc(libelle)}</span>`;
@@ -248,7 +251,7 @@ export function vueJour(S) {
       ${/* La colonne dit déjà « Rendez-vous » ou « Décideur ouvert » : répéter
             l'étiquette juste en dessous n'apprend rien et alourdit la carte. */
         ['rdv', 'ouvert'].includes(c.situation) ? '' : `<span class="kcpill">${pastilleSituation(c)}</span>`}
-      <span class="kcsum">${esc(c.summary || 'Résumé à compléter — la mise en forme du soir n’a pas encore traité cet appel.')}</span>
+      <span class="kcsum">${esc(texteResume(c))}</span>
       ${c.next_step ? `<span class="kcnx">→ ${esc(c.next_step)}</span>` : ''}</button>
     <span class="kcf">${qui(c)}<span class="num">${dateSi(c)}${heureFR(c.started_at)} · ${dureeCourte(c.duration_s)}</span><span class="acts">${actions(c)}</span></span>
   </article>`;
@@ -277,14 +280,14 @@ export function vueJour(S) {
       <td class="c-company"><b>${esc(c.company_name || '—')}</b><span class="s">${esc(c.contact_name || 'inconnu')}${c.contact_role ? ` · ${esc(c.contact_role)}` : ''}</span></td>
       <td class="nowrap">${esc(c.user_name || '—')}<span class="s num">${dateSi(c)}${heureFR(c.started_at)} · ${dureeCourte(c.duration_s)}</span></td>
       <td>${pastilleSituation(c)}</td>
-      <td class="sumcell">${esc(c.summary || 'Résumé à compléter')}</td>
+      <td class="sumcell">${esc(texteResume(c))}</td>
       <td class="nxcell">${esc(c.next_step || '—')}</td>
       <td class="actcell">${actions(c)}</td></tr>`).join('') || '<tr><td colspan="6" class="empty">Aucune conversation sur la période.</td></tr>'}
     </tbody></table></div>
     <div class="cards">${tableauListe.map((c) => `<div class="ccard${S.sel === c.call_id ? ' sel' : ''}"><button class="ccardbtn" data-sel="${esc(c.call_id)}">
       <span class="t"><span>${esc(c.company_name || '—')}</span>${pastilleSituation(c)}</span>
       <span class="m">${esc(c.contact_name || 'inconnu')} · ${esc(c.user_name || '')} · <span class="num">${heureFR(c.started_at)}</span></span>
-      <span class="r">${esc(c.summary || 'Résumé à compléter')}</span>${c.next_step ? `<span class="kcnx">→ ${esc(c.next_step)}</span>` : ''}</button>${actions(c, true)}</div>`).join('')}</div></div>
+      <span class="r">${esc(texteResume(c))}</span>${c.next_step ? `<span class="kcnx">→ ${esc(c.next_step)}</span>` : ''}</button>${actions(c, true)}</div>`).join('')}</div></div>
     ${aq.length && S.sfiltre !== 'aq' ? `<div class="sect mt"><span class="n">${aq.length} appel${aq.length > 1 ? 's' : ''} à qualifier — <a href="#qualifier">ouvrir la file</a></span></div>` : ''}`;
 
   const groupes = ORDRE_SITUATIONS
@@ -293,7 +296,7 @@ export function vueJour(S) {
   const ligne = (c) => `<div class="xrow${S.sel === c.call_id ? ' sel' : ''}"><button class="xmain" data-sel="${esc(c.call_id)}">
       <span class="xc1"><b>${esc(c.company_name || 'Société inconnue')}</b><span class="s">${esc(c.contact_name || 'contact inconnu')}${c.contact_role ? ` · ${esc(c.contact_role)}` : ''}</span></span>
       <span class="xc2">${qui(c)}<span class="num">${dateSi(c)}${heureFR(c.started_at)} · ${dureeCourte(c.duration_s)}</span></span>
-      <span class="xc3">${esc(c.summary || 'Résumé à compléter')}</span>
+      <span class="xc3">${esc(texteResume(c))}</span>
       <span class="xc4">${pastilleSituation(c)}</span></button><span class="xacts">${actions(c)}</span></div>`;
   const vueListe = (groupes.map(([k, arr]) => {
     const [libelle, classe] = SITUATIONS[k] || ETIQUETTES[k];
@@ -361,6 +364,28 @@ const LIBELLE_CHAMP = {
   export: 'export', listen: 'écoute',
 };
 
+// Repliée par défaut, et chargée seulement à l'ouverture : une transcription
+// pèse plusieurs milliers de caractères, et on ne la lit qu'en cas de doute sur
+// le résumé. C'est aussi ce qui permet de la garder hors de l'écran du jour.
+function transcriptionDepliante(S, c) {
+  if (c.a_transcription === false) {
+    return `<div class="hist"><span>Transcription en attente — Ringover ne l’a pas encore rendue.</span></div>`;
+  }
+  const etat = S.transcription;
+  let contenu;
+  if (!etat || etat.call_id !== c.call_id) {
+    contenu = '<p class="doux">Cliquez pour charger la transcription.</p>';
+  } else if (etat.chargement) {
+    contenu = '<p class="doux">Chargement…</p>';
+  } else if (etat.texte) {
+    contenu = `<pre class="transcript">${esc(etat.texte)}</pre>`;
+  } else {
+    contenu = '<p class="doux">Transcription vide ou indisponible.</p>';
+  }
+  return `<details class="depliant"${S.transcriptionOuverte ? ' open' : ''}>
+    <summary>Transcription</summary>${contenu}</details>`;
+}
+
 export function ficheAppel(S) {
   const c = S.appels.find((x) => x.call_id === S.sel) || S.aQualifier?.find((x) => x.call_id === S.sel);
   if (!c) return '';
@@ -394,8 +419,9 @@ export function ficheAppel(S) {
         .map((k) => bouton('issue', k, LIBELLE_ISSUE[k], c.outcome_eff === k)).join('')}</div></div>
     <div><div class="cap bloc-titre">Situation</div><div class="opts">${
       Object.keys(SITUATIONS).map((k) => bouton('situ', k, SITUATIONS[k][0], c.situation === k)).join('')}</div></div>
-    <div class="field"><label for="resume">Résumé de l'échange</label><textarea id="resume" placeholder="Rédigé chaque soir depuis la transcription Modjo ; corrigez librement.">${esc(c.summary || '')}</textarea></div>
+    <div class="field"><label for="resume">Résumé de l'échange</label><textarea id="resume" placeholder="Rédigé deux fois par jour depuis la transcription Ringover ; corrigez librement.">${esc(c.summary || '')}</textarea></div>
     <div class="field"><label for="etape">Étape suivante</label><input id="etape" value="${esc(c.next_step || '')}" placeholder="Relance, rendez-vous, personne à appeler…"></div>
+    ${transcriptionDepliante(S, c)}
     <div class="ligne-actions"><button class="btn primary pleine" data-act="enregistrer">Enregistrer</button></div>
     <div class="hist">${(S.historique || []).map((h) => `<span><span class="num">${heureFR(h.created_at)} ${dateFR(h.created_at.slice(0, 10), true)}</span> · ${
       esc(LIBELLE_CHAMP[h.field] || h.field)}${h.new_value ? ` → ${esc(String(h.new_value).slice(0, 60))}` : ''}</span>`).join('')
@@ -543,6 +569,7 @@ export function vueAdmin(S) {
   const jourIncomplet = Object.values(S.completude).find((d) => d.complete === false);
   const resumes = a.taches?.resumes;
   const reconcile = a.taches?.reconcile;
+  const transcripts = a.taches?.transcripts;
   const invalides = Number(a.sante?.signatures_invalides_7j ?? 0);
 
   return `<div class="head"><div><h1>Administration</h1>
@@ -570,8 +597,10 @@ export function vueAdmin(S) {
     <section class="card"><h2>État de la collecte</h2>
       <div class="etats">
         <span><span class="led${a.sante?.dernier_evenement ? '' : ' crit'}"></span> Webhook Ringover · dernier événement ${quand(a.sante?.dernier_evenement)}</span>
+        <span><span class="led${transcripts ? '' : ' warn'}"></span> Transcriptions Ringover · ${transcripts ? `dernier passage ${quand(transcripts.ran_at)}` : 'jamais exécutées'}${
+          a.sansTranscription ? ` · <b>${a.sansTranscription}</b> appel${a.sansTranscription > 1 ? 's' : ''} en attente` : ' · rien en attente'}</span>
         <span><span class="led${reconcile ? '' : ' warn'}"></span> Réconciliation nocturne · ${reconcile ? `dernier passage ${quand(reconcile.ran_at)}` : 'jamais exécutée'}</span>
-        <span><span class="led${resumes ? '' : ' warn'}"></span> Résumés du soir · ${resumes ? `dernier remplissage ${quand(resumes.ran_at)}` : 'jamais exécutés'}</span>
+        <span><span class="led${resumes ? '' : ' warn'}"></span> Résumés et tags · ${resumes ? `dernier passage ${quand(resumes.ran_at)}` : 'jamais exécutés'}</span>
         <span><span class="led${invalides ? ' warn' : ''}"></span> Signatures invalides sur 7 jours : ${invalides}</span>
       </div>
       <div class="row2">

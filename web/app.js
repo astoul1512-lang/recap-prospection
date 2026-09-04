@@ -53,6 +53,8 @@ const S = {
   completude: {},
   collaborateurs: [],
   historique: [],
+  transcription: null,
+  transcriptionOuverte: false,
   admin: {},
   chargement: false,
   erreurChargement: '',
@@ -157,8 +159,9 @@ async function charger() {
       S.appels = S.aQualifier;
       fileChargee = true;
     } else if (S.vue === 'admin') {
-      const [membres, lignes, taches] = await Promise.all([
+      const [membres, lignes, taches, sansTranscription] = await Promise.all([
         api.tousLesMembres(), api.toutesLesLignes(), api.passagesTaches(),
+        api.nombreSansTranscription().catch(() => 0),
       ]);
       let sante = null;
       try {
@@ -166,7 +169,7 @@ async function charger() {
       } catch (e) {
         console.error('état de la collecte', e);
       }
-      S.admin = { membres, lignes, taches, sante };
+      S.admin = { membres, lignes, taches, sante, sansTranscription };
       S.completude = await api.completude(ajouterJours(S.aujourdhui, -14), S.aujourdhui);
       S.appels = [];
     } else {
@@ -356,6 +359,10 @@ function brancher() {
       toast('Ligne réattribuée — les prochains appels seront comptés à cette personne.');
     } catch (erreur) { echec('Réattribution impossible', erreur); }
   });
+  sur('.depliant', 'toggle', (e) => {
+    S.transcriptionOuverte = e.currentTarget.open;
+    if (e.currentTarget.open) chargerTranscription();
+  });
   sur('#code', 'keydown', (e) => { if (e.key === 'Enter') agir(S.etapeConnexion === 'mfa' ? 'mfa-verifier' : 'mfa-inscrire'); });
   sur('#em', 'keydown', (e) => { if (e.key === 'Enter') agir('lien'); });
 }
@@ -368,12 +375,32 @@ function appelSelectionne() {
 async function selectionner(callId) {
   S.sel = callId;
   S.historique = [];
+  S.transcription = null;
+  S.transcriptionOuverte = false;
   rendre();
   if (window.innerWidth <= 1100) document.querySelector('.detail')?.classList.add('open');
   try {
     S.historique = await api.historique(callId);
     rendre();
   } catch { /* l'historique manquant n'empêche pas de travailler */ }
+}
+
+// La transcription n'est demandée qu'au moment où quelqu'un la déplie : c'est
+// plusieurs milliers de caractères qu'on ne veut pas charger cinquante fois par
+// écran du jour.
+async function chargerTranscription() {
+  const c = appelSelectionne();
+  if (!c || S.transcription?.call_id === c.call_id) return;
+  S.transcription = { call_id: c.call_id, chargement: true, texte: '' };
+  rendre();
+  try {
+    const ligne = await api.transcription(c.call_id);
+    S.transcription = { call_id: c.call_id, chargement: false, texte: ligne?.transcript ?? '' };
+  } catch (erreur) {
+    console.error('transcription', erreur);
+    S.transcription = { call_id: c.call_id, chargement: false, texte: '' };
+  }
+  rendre();
 }
 
 // --- Corrections -----------------------------------------------------------------

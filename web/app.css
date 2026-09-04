@@ -470,6 +470,21 @@ select#whoSel { min-height: 38px; padding: 6px 10px; }
 @media (max-width: 900px) { .toast { bottom: 88px; } }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
 
+/* Dépliant « Transcription » de la fiche appel. Replié par défaut : on ne lit
+   l'échange qu'en cas de doute sur le résumé. */
+.depliant { border-top: 1px solid var(--hair); padding-top: 10px; }
+.depliant > summary {
+  cursor: pointer; font-size: 11px; letter-spacing: .08em; text-transform: uppercase;
+  color: var(--muted); font-weight: 600; min-height: 24px; list-style-position: inside;
+}
+.depliant > summary:hover { color: var(--ink-2); }
+.depliant .doux { color: var(--muted); font-size: 12.5px; margin: 8px 0 0; }
+pre.transcript {
+  margin: 8px 0 0; padding: 10px 12px; background: var(--surface-3); border-radius: var(--radius);
+  font-family: var(--font-ui); font-size: 12.5px; line-height: 1.6; color: var(--ink-2);
+  white-space: pre-wrap; word-break: break-word; max-height: 40vh; overflow: auto;
+}
+
 /* Une panne de chargement se dit, elle ne se déduit pas d'un écran vide. */
 .alerte {
   border-color: var(--crit); background: var(--crit-soft); color: var(--crit);

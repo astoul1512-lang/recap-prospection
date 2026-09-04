@@ -146,6 +146,11 @@ export const SITUATIONS = {
 export const ETIQUETTES = {
   aq: ['À qualifier', 'warn'],
   nosum: ['Résumé à compléter', 'warn'],
+  // Deux attentes différentes, qu'il ne faut surtout pas confondre : sans
+  // transcription il n'y a rien à faire qu'attendre ; avec transcription mais
+  // sans résumé, c'est la routine du soir qui est en retard ou qui a buté.
+  // Les afficher pareil, c'est ne jamais savoir si la chaîne fonctionne.
+  attente: ['Transcription en attente', 'neu'],
 };
 
 export const ORDRE_SITUATIONS = ['rdv', 'ouvert', 'porte', 'relance', 'client', 'direct', 'besoin', 'bache', 'nosum'];
@@ -172,6 +177,16 @@ export const estConversation = (c) => c.kind_eff === 'prospection' && c.status =
 // La clé de rangement d'une conversation dans les colonnes : sa situation, ou
 // « résumé à compléter » tant que personne ni la tâche du soir n'a écrit.
 export const clefSituation = (c) => c.situation || 'nosum';
+
+// Ce qu'on écrit à la place d'un résumé absent — en disant laquelle des deux
+// attentes on est en train de regarder.
+export function texteResume(c) {
+  if (c.summary) return c.summary;
+  if (c.a_transcription === false) {
+    return 'Transcription en attente — Ringover ne l’a pas encore rendue.';
+  }
+  return 'Résumé à compléter — la routine n’a pas encore traité cet appel.';
+}
 
 export function etatAppel(c) {
   if (c.status === 'answered') return `appel court ${duree(c.duration_s)}`;

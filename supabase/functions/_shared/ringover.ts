@@ -174,7 +174,9 @@ export type SondeTranscription = {
   call_id: string;
   http: number;
   etat: string | null;
+  enveloppe: string;
   clefs: string[];
+  clefs_donnees: string[];
   segments: number | null;
   langue: string | null;
   caracteres: number | null;
@@ -195,8 +197,17 @@ function texteBrut(v: unknown): string {
 // 1) et ce qui est dit. On en fait un texte lisible, une réplique par ligne —
 // c'est ce que la routine lira, et ce que l'équipe verra dans la fiche appel.
 export function assemblerParoles(donnees: unknown): { texte: string; segments: number } {
+  // La liste de répliques peut être la donnée elle-même, ou nichée sous l'un de
+  // ces noms. On les essaie tous plutôt que de parier sur celui qu'on verra.
+  if (Array.isArray(donnees)) return assemblerListe(donnees);
   const o = (donnees && typeof donnees === "object") ? donnees as Record<string, unknown> : {};
-  const brut = Array.isArray(o.speeches) ? o.speeches : (Array.isArray(o.segments) ? o.segments : []);
+  for (const clef of ["speeches", "segments", "utterances", "sentences", "results"]) {
+    if (Array.isArray(o[clef])) return assemblerListe(o[clef] as unknown[]);
+  }
+  return assemblerListe([]);
+}
+
+function assemblerListe(brut: unknown[]): { texte: string; segments: number } {
   const lignes: string[] = [];
   for (const p of brut) {
     if (typeof p === "string") {
@@ -236,7 +247,9 @@ export async function transcription(callId: string): Promise<ResultatTranscripti
     call_id: callId,
     http: reponse.status,
     etat: null,
+    enveloppe: "",
     clefs: [],
+    clefs_donnees: [],
     segments: null,
     langue: null,
     caracteres: null,
@@ -254,25 +267,43 @@ export async function transcription(callId: string): Promise<ResultatTranscripti
     return { etat: "injoignable", motif: `http_${reponse.status}` };
   }
 
-  let charge: Record<string, unknown>;
+  let charge: unknown;
   try {
-    charge = await reponse.json() as Record<string, unknown>;
+    charge = await reponse.json();
   } catch {
     return { etat: "injoignable", motif: "reponse_illisible" };
   }
 
-  // La réponse enveloppe parfois la transcription dans une liste : on accepte
-  // les deux formes plutôt que de parier sur celle qu'on verra.
-  const liste = Array.isArray(charge.list) ? charge.list : (Array.isArray(charge.data) ? charge.data : null);
-  const noyau = (liste && liste[0] && typeof liste[0] === "object")
-    ? liste[0] as Record<string, unknown>
-    : charge;
+  // L'endpoint renvoie un **tableau** — constaté le 4 septembre 2026 sur le
+  // trafic réel, alors que la documentation laissait attendre un objet. On
+  // accepte les trois formes plutôt que de parier sur celle du jour.
+  let noyau: Record<string, unknown> = {};
+  if (Array.isArray(charge)) {
+    sonde.enveloppe = "tableau";
+    const premier = charge[0];
+    if (premier && typeof premier === "object") noyau = premier as Record<string, unknown>;
+  } else if (charge && typeof charge === "object") {
+    const o = charge as Record<string, unknown>;
+    const liste = Array.isArray(o.list) ? o.list : (Array.isArray(o.data) ? o.data : null);
+    if (liste && liste[0] && typeof liste[0] === "object") {
+      sonde.enveloppe = "objet_avec_liste";
+      noyau = liste[0] as Record<string, unknown>;
+    } else {
+      sonde.enveloppe = "objet";
+      noyau = o;
+    }
+  }
 
   sonde.clefs = Object.keys(noyau).slice(0, 25);
   sonde.etat = texteBrut(noyau.transcription_status) || texteBrut(noyau.status) || null;
   sonde.langue = texteBrut(noyau.language) || texteBrut(noyau.lang) || null;
 
   const donnees = noyau.transcription_data ?? noyau.transcription ?? noyau;
+  if (donnees && typeof donnees === "object" && !Array.isArray(donnees)) {
+    sonde.clefs_donnees = Object.keys(donnees as Record<string, unknown>).slice(0, 25);
+  } else if (Array.isArray(donnees)) {
+    sonde.clefs_donnees = ["(tableau)"];
+  }
   const { texte, segments } = assemblerParoles(donnees);
   sonde.segments = segments;
   sonde.caracteres = texte.length;

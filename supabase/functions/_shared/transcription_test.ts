@@ -62,3 +62,19 @@ Deno.test("liste de phrases nues : acceptée telle quelle", () => {
   estEgal(segments, 2);
   estVrai(texte.includes("Première phrase."));
 });
+
+Deno.test("la réponse est un tableau : la liste de répliques est retrouvée", () => {
+  // Forme constatée le 4 septembre 2026 sur le trafic réel : l'endpoint
+  // renvoie un tableau, là où la documentation laissait attendre un objet.
+  const { texte, segments } = assemblerParoles([
+    { speaker_id: 0, content: "Bonjour." },
+    { speaker_id: 1, content: "Bonjour à vous." },
+  ]);
+  estEgal(segments, 2);
+  estEgal(texte, "Collaborateur : Bonjour.\nInterlocuteur : Bonjour à vous.");
+});
+
+Deno.test("autres noms possibles de la liste de répliques", () => {
+  estEgal(assemblerParoles({ utterances: [{ content: "Oui." }] }).texte, "Oui.");
+  estEgal(assemblerParoles({ sentences: [{ text: "Non." }] }).texte, "Non.");
+});
