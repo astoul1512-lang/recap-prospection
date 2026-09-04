@@ -55,6 +55,7 @@ const S = {
   historique: [],
   admin: {},
   chargement: false,
+  erreurChargement: '',
 };
 
 function preference(clef, defaut) {
@@ -142,6 +143,7 @@ async function chargerFile() {
 
 async function charger() {
   S.chargement = true;
+  S.erreurChargement = '';
   rendre();
   try {
     const { du, au } = periode();
@@ -191,7 +193,14 @@ async function charger() {
     // seulement sur celui de la file.
     if (!fileChargee) await chargerFile().catch(() => {});
   } catch (erreur) {
-    echec('Chargement impossible', erreur);
+    // Une panne de chargement ne doit JAMAIS ressembler à une journée sans
+    // appels : les deux s'affichent avec des zéros partout, et seul le premier
+    // cas demande une action. D'où ce bandeau, en plus du message fugace.
+    console.error('chargement', erreur);
+    S.erreurChargement = erreur?.message
+      ? `Les appels n'ont pas pu être chargés (${erreur.message}).`
+      : "Les appels n'ont pas pu être chargés.";
+    S.appels = [];
   } finally {
     S.chargement = false;
     rendre();
@@ -215,10 +224,15 @@ function rendre() {
     brancher();
     return;
   }
+  const bandeau = S.erreurChargement
+    ? `<div class="card alerte"><div><b>${esc(S.erreurChargement)}</b>
+        <div class="s">Les chiffres affichés ci-dessous sont donc faux : ce ne sont pas des zéros, c'est une absence de réponse du serveur.</div></div>
+        <button class="btn sm" data-act="recharger">Réessayer</button></div>`
+    : '';
   const corps = {
     jour: vueJour, semaine: vueSemaine, qualifier: vueQualifier, equipe: vueEquipe, admin: vueAdmin,
   }[S.vue](S);
-  racine.innerHTML = coquille(S, corps, VERSION);
+  racine.innerHTML = coquille(S, bandeau + corps, VERSION);
   poserDimensions();
   brancher();
 }
@@ -500,6 +514,9 @@ async function agir(action, bouton) {
       return;
     case 'fermerModale':
       modale(null);
+      return;
+    case 'recharger':
+      await charger();
       return;
 
     case 'rec': {
