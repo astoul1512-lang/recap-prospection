@@ -1,0 +1,16 @@
+# Configuration Supabase CLI — Récap prospection
+project_id = "mwbwgnulwfyuqgdgwhqg"
+
+[functions.ringover-webhook]
+verify_jwt = false      # signature HS512 vérifiée dans la fonction
+
+[functions.classify]
+verify_jwt = true
+[functions.summarize]
+verify_jwt = true
+[functions.reconcile]
+verify_jwt = true
+[functions.notify-slack]
+verify_jwt = true
+[functions.admin]
+verify_jwt = true
