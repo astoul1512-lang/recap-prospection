@@ -81,3 +81,44 @@ Anthropic (résumés en 5 minutes, ~3,50 $/mois) est un ajout, pas une refonte.
 | §5.4.4 nouvelle tentative Modjo la nuit | sans objet (la fenêtre de 7 jours la remplace) |
 | Colonne `summarize_attempts` | conservée, non utilisée pour l'instant |
 | `transcript_source` | conservée : `modjo` ou `aucune` |
+
+---
+
+## D2 — Le jeton des tâches planifiées vit dans la base, pas dans un secret
+
+**Décidé le 4 septembre 2026.**
+
+### Ce que dit la spécification
+
+`SPECS.md` §3.1 et §9.1 prévoient un secret `cron_token` créé à la main dans
+Supabase, **et** la même valeur recopiée en base
+(`alter database postgres set app.cron_token = '…'`). pg_cron l'envoie, la
+fonction le compare à son secret.
+
+### Ce qui est fait à la place
+
+La valeur n'existe qu'à un seul endroit : une table `private.config`, illisible
+depuis l'application, où **la base la tire au sort elle-même** au moment de la
+migration. pg_cron l'y lit pour l'envoyer, la fonction demande à la base « ce
+jeton est-il le bon ? » et n'obtient qu'un oui ou un non. Aucun secret
+`cron_token` à créer dans Supabase, rien à recopier, rien à retenir.
+
+### Pourquoi
+
+Une valeur recopiée à deux endroits finit par être désynchronisée — et le jour
+où elle l'est, les tâches planifiées s'arrêtent en silence, ce qui est
+précisément le mode de panne le plus difficile à voir. Une seule source, pas de
+recopie, pas de manipulation demandée à Adrien.
+
+### Le détail qui coince, et sa réponse
+
+Le portail Supabase exige un jeton valide **avant** d'atteindre la fonction
+(`verify_jwt = true`, contrôle n°8 du vérificateur, qu'on ne contourne pas).
+pg_cron envoie donc la **clé publique du projet** — celle que le site porte
+déjà, qui ne donne aucun droit — pour passer la porte. Ce qui fait autorité
+ensuite, c'est le jeton de tâche.
+
+### Ce que ça coûte
+
+Une requête de plus par exécution planifiée, quelques millisecondes. Rien
+d'autre : une base reconstruite de zéro retire un nouveau jeton toute seule.

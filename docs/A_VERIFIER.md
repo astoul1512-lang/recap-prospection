@@ -3,10 +3,26 @@
 | # | Sujet | Comment vérifier | Résultat |
 |---|---|---|---|
 | 1 | Noms exacts des événements webhook Ringover et présence de `duration_in_seconds` sur `hangup` | lire `private.webhook_events` après le premier vrai appel (lot 0) | ✅ **résolu le 4 septembre 2026** — voir « Ce que le premier appel réel a montré » |
-| 2 | Endpoint Ringover qui expose le **résumé classique** d'un appel (sans Empower) pour un `call_id` | appeler l'API avec la clé `ringover` sur un appel récent ; regarder ce que renvoie `GET /v2/calls/{id}` ; tester `empower/call/:calluuid/summary` | |
-| 3 | Paramètres exacts de `GET /v2/calls` (dates, pagination `last_id_call`, `limit_count`) | https://developer.ringover.com/ + un appel réel | |
-| 4 | API Modjo : lister les appels par fenêtre de temps et numéro ; récupérer transcription et résumé | https://api.modjo.ai/v2/docs + un appel réel avec la clé `modjo` | |
-| 5 | Format `phoneNumbers[].canonicalNumber` renvoyé par Jarvi (E.164 ?) | un `GET /rest/v2/profiles?where=…` sur un contact connu | |
+| 2 | Endpoint Ringover qui expose le **résumé classique** d'un appel (sans Empower) pour un `call_id` | appeler l'API avec la clé `ringover` sur un appel récent ; regarder ce que renvoie `GET /v2/calls/{id}` ; tester `empower/call/:calluuid/summary` | ✅ **clos le 4 septembre 2026** — il n'en existe aucun : voir `docs/ringover-api.md`. Sans objet depuis la décision D1 (résumés Modjo). |
+| 3 | Paramètres exacts de `GET /v2/calls` (dates, pagination `last_id_call`, `limit_count`) | https://developer.ringover.com/ + un appel réel | ✅ **résolu le 4 septembre 2026** — trois noms de `SPECS.md` étaient faux : voir `docs/ringover-api.md` |
+| 4 | API Modjo : lister les appels par fenêtre de temps et numéro ; récupérer transcription et résumé | https://api.modjo.ai/v2/docs + un appel réel avec la clé `modjo` | ⤳ **déplacé** : plus aucun code serveur n'appelle Modjo, c'est la tâche Claude planifiée qui s'en charge par son connecteur (décision D1) |
+| 5 | Format `phoneNumbers[].canonicalNumber` renvoyé par Jarvi (E.164 ?) | un `GET /rest/v2/profiles?where=…` sur un contact connu | ⚠️ **contourné** — le code ne suppose plus aucun format : voir « Rapprochement des numéros » ci-dessous. À confirmer au premier vrai classement. |
+
+## Rapprochement des numéros (ligne 5)
+
+Plutôt que d'attendre de savoir si Jarvi renvoie `+33612345678`, `0612345678`
+ou `33 6 12 34 56 78`, le code compare les **neuf derniers chiffres** des deux
+numéros, ponctuation et indicatif retirés (`_shared/phone.ts`). Neuf, c'est la
+longueur d'un numéro français sans le 0 : assez pour être unique, assez court
+pour survivre à toutes les façons d'écrire un indicatif.
+
+Deux garde-fous, parce que les deux erreurs possibles n'ont pas la même
+gravité : un rapprochement **raté** classe un vrai client en « inconnu », ce
+qui se voit et se corrige d'un clic ; un rapprochement **abusif** attribue un
+appel au mauvais contact, ce qui ne se voit pas. Donc — on refuse de comparer
+des numéros de moins de neuf chiffres, et un profil renvoyé par Jarvi dont
+aucun numéro ne correspond réellement est écarté, même s'il est le seul
+résultat.
 
 Consigner ici les réponses (anonymisées) et les décisions prises.
 
@@ -39,9 +55,10 @@ vrai Ringover.
 
 2. **`data.status` vaut `"hangup"` sur l'événement `hangup`**, jamais
    `"answered"`. La règle §5.1.5 « `status = ended` si non répondu » ne peut donc
-   pas s'appuyer dessus. Le code conclut « répondu » via `duration_in_seconds > 0`,
-   ce qui a donné le bon résultat. **Reste à valider sur un appel non décroché**
-   (vérifier que la durée y vaut bien 0 et non la durée de sonnerie).
+   pas s'appuyer dessus. Le code conclut « répondu » via `duration_in_seconds > 0`.
+   ✅ **Confirmé le 4 septembre 2026 sur 42 appels réels** : les deux appels non
+   décrochés portent bien `duration_in_seconds = 0`, et non la durée de
+   sonnerie. La règle est juste ; le point (c) plus bas est clos.
 
 3. **Les numéros arrivent sans `+`** : `"33664904615"`. La normalisation en
    `+33664904615` fonctionne.
@@ -50,11 +67,16 @@ vrai Ringover.
    `data.user.user_id` est le nombre `22673838`. On retient le texte comme clé
    de `ringover_users` : c'est celui de l'enveloppe, stable.
 
-5. **`answering_machine_detection`** existe (`"HUMAN"` ici) et n'était pas prévu
-   par la spécification. **C'est une vraie occasion** : il distingue un répondeur
-   d'un humain, exactement ce que la file « À qualifier » demande de trancher à
-   la main pour les appels courts (§1.1.4). À exploiter au lot 1 pour classer
-   automatiquement les répondeurs et alléger la file.
+5. **`answering_machine_detection`** existe et n'était pas prévu par la
+   spécification. **C'est une vraie occasion** : il distingue un répondeur d'un
+   humain, exactement ce que la file « À qualifier » demande de trancher à la
+   main pour les appels courts (§1.1.4).
+   ✅ **Exploité au lot 1.** Valeurs observées : `HUMAN`, `MACHINE`, `NOTSURE`.
+   Un appel `MACHINE` **de moins d'une minute** devient une messagerie
+   (`status = voicemail`, issue `tentative`) et ne pose plus de question à
+   l'équipe. Au-delà d'une minute on ne s'y fie pas : une vraie conversation
+   perdue par erreur ne se rattrape pas, alors qu'un répondeur écouté longtemps
+   se corrige d'un clic.
 
 6. **Trois événements de `SPECS.md` §6.1 n'existent pas** dans la configuration
    des webhooks Ringover : `record_available`, `tags_updated`, `comments_updated`.

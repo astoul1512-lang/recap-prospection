@@ -76,6 +76,22 @@ export function issueAutomatique(
   return (dureeS ?? 0) >= 60 ? "conversation" : "court";
 }
 
+// Ringover annonce lui-même s'il a reconnu un répondeur
+// (`answering_machine_detection` : HUMAN, MACHINE, NOTSURE). Ce champ n'était
+// pas prévu par SPECS §6.1 ; il vaut de l'or, car il répond tout seul à la
+// question que la file « À qualifier » posait à l'équipe pour chaque appel
+// court : « répondeur ou vraie personne ? » (docs/A_VERIFIER.md, écart n°5).
+//
+// On ne s'y fie que pour les appels de moins d'une minute : au-delà, une
+// conversation reconnue à tort comme répondeur serait une perte sèche, alors
+// qu'un répondeur écouté longtemps reste rattrapable à la main.
+export const SEUIL_CONVERSATION_S = 60;
+
+export function repondeurReconnu(data: Record<string, unknown>, dureeS: number | null): boolean {
+  const detection = String(data.answering_machine_detection ?? "").toUpperCase();
+  return detection === "MACHINE" && (dureeS ?? 0) < SEUIL_CONVERSATION_S;
+}
+
 function duree(data: Record<string, unknown>): number | null {
   for (const clef of ["duration_in_seconds", "duration", "total_duration"]) {
     const v = data[clef];
@@ -163,23 +179,32 @@ export function construirePlan(enveloppe: Enveloppe, horodatageMs: number): Plan
 
     case "hangup": {
       const dureeS = duree(data);
+      // Un appel non décroché raccroche avec une durée nulle : vérifié sur le
+      // trafic réel du 4 septembre 2026 (docs/A_VERIFIER.md).
       const repondu = data.answered_time !== undefined && data.answered_time !== null
         ? true
         : String(data.status ?? "").toLowerCase() === "answered" || (dureeS ?? 0) > 0;
-      const statut = repondu ? "answered" : "ended";
-      const issue = issueAutomatique(statut, dureeS, data.tags);
+      const repondeur = repondu && repondeurReconnu(data, dureeS);
+      // Une messagerie n'est pas « quelqu'un eu au téléphone » (SPECS §1.2) :
+      // elle rejoint les autres appels, pas l'entonnoir.
+      const statut = repondeur ? "voicemail" : (repondu ? "answered" : "ended");
+      const issue = repondeur ? "tentative" : issueAutomatique(statut, dureeS, data.tags);
       const modification: Record<string, unknown> = {
         status: statut,
         ended_at: versISO(data.hangup_time) ?? new Date(horodatageMs).toISOString(),
         duration_s: dureeS,
         outcome: issue,
+        machine_detection: typeof data.answering_machine_detection === "string"
+          ? data.answering_machine_detection
+          : null,
       };
       if (typeof data.record === "string" && data.record) modification.record_link = data.record;
       if (issue === "rdv") modification.situation = "rdv";
       // Un appel décroché de moins d'une minute doit être tranché à la main
-      // (répondeur ? bâché ? vraie conversation ?) — SPECS §1.1.4.
-      // Les appels internes et anonymes sortent du rapport : on ne les met pas
-      // dans la file, ils n'y ont pas leur place.
+      // (bâché ? vraie conversation ?) — SPECS §1.1.4. Les appels internes et
+      // anonymes sortent du rapport : on ne les met pas dans la file, ils n'y
+      // ont pas leur place. Le classement Jarvi qui suit lèvera la demande de
+      // qualification si le numéro n'est pas un contact.
       if (issue === "court" && !booleen(data.is_internal) && !booleen(data.is_anonymous)) {
         modification.needs_review = true;
         modification.review_reason = "court";

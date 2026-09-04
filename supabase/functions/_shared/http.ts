@@ -38,6 +38,19 @@ export async function avecReprise<T>(
   throw derniere;
 }
 
+// Travail à poursuivre APRÈS avoir répondu. Ringover attend un accusé de
+// réception rapide ; l'interrogation de Jarvi qui suit un raccrochage peut
+// prendre plusieurs secondes. `EdgeRuntime.waitUntil` est l'API prévue par
+// Supabase pour qu'un traitement en cours ne soit pas interrompu par l'arrêt de
+// l'exécutable. Hors de cet environnement (tests), on se contente d'attendre.
+export function poursuivre(travail: Promise<unknown>): void {
+  const surveille = travail.catch(() => {});
+  const runtime = (globalThis as Record<string, unknown>).EdgeRuntime as
+    | { waitUntil?: (p: Promise<unknown>) => void }
+    | undefined;
+  if (runtime && typeof runtime.waitUntil === "function") runtime.waitUntil(surveille);
+}
+
 // Réponses de la fonction : minimales, aucun détail interne (SPECS §5).
 export function reponse(statut: number, corps?: unknown): Response {
   if (corps === undefined) return new Response(null, { status: statut });

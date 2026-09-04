@@ -11,6 +11,13 @@ verify_jwt = false      # signature HS512 vérifiée dans la fonction
 [functions.admin]
 verify_jwt = true
 
-# Lot 1 : classify, summarize, reconcile — lot 2 : notify-slack.
+[functions.classify]
+verify_jwt = true
+
+[functions.reconcile]
+verify_jwt = true
+
+# Lot 2 : notify-slack. Il n'y aura pas de fonction `summarize` : les résumés
+# sont mis en forme par une tâche Claude planifiée (docs/decisions.md, D1).
 # verify_jwt vaut true par défaut : ne jamais le passer à false ailleurs
 # qu'au-dessus, pour ringover-webhook (contrôle n°8 de scripts/verifier.sh).

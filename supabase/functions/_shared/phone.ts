@@ -59,3 +59,25 @@ export function numeroExterneOuDefaut(direction: string, fromNumber: unknown, to
 export function sensRingover(direction: unknown): "in" | "out" {
   return String(direction ?? "").toLowerCase().startsWith("out") ? "out" : "in";
 }
+
+// Nombre de chiffres comparés pour dire « c'est le même numéro ».
+// Neuf, c'est la longueur du numéro national français sans le 0 (612345678) :
+// assez pour être unique, assez court pour tolérer les indicatifs écrits
+// différemment (+33, 0033, 0) d'une base de données à l'autre.
+const CHIFFRES_COMPARES = 9;
+
+export function chiffresSignificatifs(numero: unknown): string {
+  const chiffres = String(numero ?? "").replace(/[^0-9]/g, "");
+  if (chiffres.length <= CHIFFRES_COMPARES) return chiffres;
+  return chiffres.slice(-CHIFFRES_COMPARES);
+}
+
+// Deux numéros désignent le même interlocuteur si leurs derniers chiffres
+// coïncident. Un rapprochement raté classe un vrai client en « inconnu » ; un
+// rapprochement abusif attribue un appel au mauvais contact — d'où le refus de
+// comparer des numéros trop courts, où la collision devient probable.
+export function memeNumero(a: unknown, b: unknown): boolean {
+  const x = chiffresSignificatifs(a);
+  const y = chiffresSignificatifs(b);
+  return x.length === CHIFFRES_COMPARES && x === y;
+}

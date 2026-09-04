@@ -18,6 +18,16 @@ export function jourParis(date: Date): string {
   return `${parts.year}-${parts.month}-${parts.day}`;
 }
 
+// La veille, en jour de Paris. La réconciliation tourne au milieu de la nuit :
+// c'est la journée qui vient de se terminer qu'elle vérifie.
+export function veilleParis(maintenant: Date = new Date()): string {
+  return jourParis(new Date(maintenant.getTime() - 24 * 3600 * 1000));
+}
+
+export function estJourValide(valeur: unknown): valeur is string {
+  return typeof valeur === "string" && /^\d{4}-\d{2}-\d{2}$/.test(valeur);
+}
+
 export type UniteTemps = "secondes" | "millisecondes" | "iso" | "inconnue";
 export type TempsAnalyse = { date: Date | null; unite: UniteTemps };
 

@@ -7,16 +7,18 @@
 // une invitation à remplir la base gratuitement.
 
 import { log, logErreur, numeroMasque } from "../_shared/log.ts";
-import { reponse } from "../_shared/http.ts";
+import { poursuivre, reponse } from "../_shared/http.ts";
 import { verifierJwtHs512 } from "../_shared/signature.ts";
 import { analyserTemps, ecartMinutes } from "../_shared/dates.ts";
 import {
+  appelsParIdentifiants,
   configurationPresente,
   enregistrerRingoverUser,
   insererAppelSiAbsent,
   journaliserEvenement,
   modifierAppel,
 } from "../_shared/db.ts";
+import { classerAppels } from "../_shared/classer.ts";
 import { construirePlan, lireEnveloppe } from "./plan.ts";
 
 const FN = "ringover-webhook";
@@ -150,6 +152,20 @@ Deno.serve(async (req: Request): Promise<Response> => {
       tentative: enveloppe.attempt,
       ms: Date.now() - debut,
     });
+
+    // 7. Classement immédiat : c'est au raccrochage que l'appel est complet, et
+    // c'est là que Jarvi peut dire s'il s'agit de prospection. On le fait après
+    // avoir répondu — Ringover n'a pas à attendre notre interrogation d'un
+    // service tiers, et une lenteur de Jarvi ne doit pas provoquer un renvoi.
+    // Si ça échoue, l'appel reste `a_classer` et le rattrapage le reprendra.
+    if (enveloppe.event === "hangup" && plan.callId) {
+      const callId = plan.callId;
+      poursuivre(
+        appelsParIdentifiants([callId]).then((bruts) =>
+          classerAppels(bruts, { origine: "webhook" })
+        ),
+      );
+    }
   } catch (erreur) {
     // On répond quand même 204 : l'événement est déjà dans le journal brut,
     // et faire réessayer Ringover en boucle sur une panne base n'aide personne.

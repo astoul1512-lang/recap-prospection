@@ -94,13 +94,17 @@ export async function enregistrerRingoverUser(ligne: LigneRingoverUser): Promise
 
 // --- Appels ------------------------------------------------------------------
 
-export async function insererAppelSiAbsent(ligne: Record<string, unknown>): Promise<boolean> {
+// Renvoie le nombre de lignes réellement créées (0 si l'appel existait déjà) :
+// la réconciliation a besoin de savoir ce qu'elle a rattrapé, pas seulement que
+// la requête a abouti.
+export async function insererAppelSiAbsent(ligne: Record<string, unknown>): Promise<number> {
   const r = await rest("calls?on_conflict=call_id", {
     method: "POST",
     body: JSON.stringify(ligne),
-    headers: { Prefer: "resolution=ignore-duplicates,return=minimal" },
+    headers: { Prefer: "resolution=ignore-duplicates,return=representation" },
   });
-  return r.ok;
+  if (!r.ok) return 0;
+  return (await corpsJson(r)).length;
 }
 
 // Renvoie le nombre de lignes réellement modifiées. Quand `horodatageMs` est
@@ -130,6 +134,142 @@ export async function appelExiste(callId: string): Promise<boolean> {
   const r = await rest(`calls?call_id=eq.${encodeURIComponent(callId)}&select=call_id&limit=1`);
   if (!r.ok) return false;
   return (await corpsJson(r)).length > 0;
+}
+
+// --- Classement --------------------------------------------------------------
+
+// Les colonnes dont la décision de classement a besoin, et elles seules.
+const CHAMPS_CLASSEMENT =
+  "call_id,external_number,is_internal,is_anonymous,status,duration_s,outcome," +
+  "outcome_manual,kind_manual,machine_detection,reviewed_at,jarvi_check_count";
+
+export async function appelsAClasser(limite: number): Promise<Record<string, unknown>[]> {
+  const r = await rest(
+    `calls?kind=eq.a_classer&select=${CHAMPS_CLASSEMENT}&order=started_at.desc&limit=${limite}`,
+  );
+  if (!r.ok) return [];
+  return (await corpsJson(r)) as Record<string, unknown>[];
+}
+
+export async function appelsParIdentifiants(ids: string[]): Promise<Record<string, unknown>[]> {
+  if (!ids.length) return [];
+  const liste = ids.map((i) => `"${i.replace(/"/g, "")}"`).join(",");
+  const r = await rest(
+    `calls?call_id=in.(${encodeURIComponent(liste)})&select=${CHAMPS_CLASSEMENT}`,
+  );
+  if (!r.ok) return [];
+  return (await corpsJson(r)) as Record<string, unknown>[];
+}
+
+export async function lireCacheJarvi(e164: string): Promise<Record<string, unknown> | null> {
+  const r = await rest(
+    `jarvi_cache?phone_e164=eq.${encodeURIComponent(e164)}&select=*&limit=1`,
+  );
+  if (!r.ok) return null;
+  return ((await corpsJson(r))[0] as Record<string, unknown>) ?? null;
+}
+
+export async function ecrireCacheJarvi(ligne: Record<string, unknown>): Promise<boolean> {
+  const r = await rest("jarvi_cache?on_conflict=phone_e164", {
+    method: "POST",
+    body: JSON.stringify(ligne),
+    headers: { Prefer: "resolution=merge-duplicates,return=minimal" },
+  });
+  return r.ok;
+}
+
+// --- Journal des corrections et des usages -----------------------------------
+
+export async function journaliserCorrection(ligne: Record<string, unknown>): Promise<boolean> {
+  const r = await rest("corrections", {
+    method: "POST",
+    body: JSON.stringify(ligne),
+    headers: { Prefer: "return=minimal" },
+  });
+  return r.ok;
+}
+
+// Plafond des revérifications manuelles : 60 par heure et par utilisateur
+// (SPECS §5.2.5). Compté dans le journal, donc partagé entre instances —
+// contrairement à un compteur en mémoire, il résiste aux démarrages à froid.
+export async function compterRevisitesJarvi(userId: string): Promise<number> {
+  const depuis = new Date(Date.now() - 3600_000).toISOString();
+  const r = await rest(
+    `corrections?field=eq.jarvi_recheck&author_id=eq.${encodeURIComponent(userId)}` +
+      `&created_at=gte.${encodeURIComponent(depuis)}&select=id`,
+    { headers: { Prefer: "count=exact", Range: "0-0" } },
+  );
+  if (!r.ok) return 0;
+  const plage = r.headers.get("content-range") ?? "";
+  const total = Number(plage.split("/")[1]);
+  await r.body?.cancel();
+  return Number.isFinite(total) ? total : 0;
+}
+
+// --- Complétude des journées -------------------------------------------------
+
+export async function enregistrerJourneeVerifiee(ligne: Record<string, unknown>): Promise<boolean> {
+  const r = await rest("day_status?on_conflict=day", {
+    method: "POST",
+    body: JSON.stringify(ligne),
+    headers: { Prefer: "resolution=merge-duplicates,return=minimal" },
+  });
+  return r.ok;
+}
+
+export async function compterAppelsDuJour(jour: string, source?: string): Promise<number> {
+  const filtre = source ? `&source=eq.${source}` : "";
+  const r = await rest(`calls?day=eq.${jour}${filtre}&select=call_id`, {
+    headers: { Prefer: "count=exact", Range: "0-0" },
+  });
+  if (!r.ok) return 0;
+  const plage = r.headers.get("content-range") ?? "";
+  const total = Number(plage.split("/")[1]);
+  await r.body?.cancel();
+  return Number.isFinite(total) ? total : 0;
+}
+
+// Trace du dernier passage réussi d'une tâche planifiée : c'est le seul témoin
+// qu'une tâche silencieuse n'est pas une tâche morte (docs/decisions.md, D1).
+export async function noterPassageTache(nom: string, detail: unknown): Promise<boolean> {
+  const r = await rest("rpc/note_job_run", {
+    method: "POST",
+    body: JSON.stringify({ p_name: nom, p_detail: detail ?? {} }),
+  });
+  return r.ok;
+}
+
+// --- Jeton des tâches planifiées ---------------------------------------------
+
+// Le jeton n'est pas un secret de fonction mais une valeur rangée en base :
+// pg_cron et la fonction lisent la même source, personne n'a à recopier quoi
+// que ce soit à la main (docs/decisions.md, D2). La comparaison se fait côté
+// base, en temps constant.
+export async function jetonCronValide(jeton: string): Promise<boolean> {
+  if (!jeton) return false;
+  const r = await rest("rpc/check_cron_token", {
+    method: "POST",
+    body: JSON.stringify({ p_token: jeton }),
+  });
+  if (!r.ok) return false;
+  return (await r.text()).trim() === "true";
+}
+
+// Identité de l'appelant à partir de son jeton : c'est la base qui tranche,
+// jamais la fonction.
+export async function utilisateurActif(jetonAppelant: string): Promise<string | null> {
+  const r = await fetchAvecDelai(`${BASE}/rest/v1/rpc/current_active_user`, {
+    method: "POST",
+    headers: {
+      apikey: CLE_SERVICE,
+      Authorization: jetonAppelant,
+      "Content-Type": "application/json",
+    },
+    body: "{}",
+  });
+  if (!r.ok) return null;
+  const texte = (await r.text()).trim().replace(/^"|"$/g, "");
+  return texte && texte !== "null" ? texte : null;
 }
 
 // --- Administration ----------------------------------------------------------
