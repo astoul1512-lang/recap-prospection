@@ -672,6 +672,15 @@ async function agir(action, bouton) {
       } catch (erreur) { echec('Réconciliation impossible', erreur); }
       return;
     }
+    case 'rattraper': {
+      toast('Rattrapage en cours — cela peut prendre une minute…');
+      try {
+        const bilan = await api.rattraper(5);
+        toast(`${bilan.jours} journées relues · ${bilan.ajoutes} appel(s) rattrapé(s) · ${bilan.classes} classé(s) dans Jarvi.`);
+        await charger();
+      } catch (erreur) { echec('Rattrapage impossible', erreur); }
+      return;
+    }
     case 'testerWebhook':
       try {
         const sante = await api.santeCollecte();

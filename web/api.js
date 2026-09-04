@@ -264,6 +264,8 @@ export const activerMembre = (userId, actif) => fonctionAdmin(actif ? 'admin/act
 export const effacerNumero = (phone) => fonctionAdmin('admin/erase', { phone });
 export const santeCollecte = () => fonctionAdmin('admin/webhook-test', {});
 export const relancerReconciliation = (jour) => fonctionAdmin(jour ? `reconcile?day=${jour}` : 'reconcile', {});
+// Rattrapage : reprend les N journées précédant hier, en une seule fois.
+export const rattraper = (jours) => fonctionAdmin(`reconcile?jours=${jours}`, {});
 
 export async function changerRole(userId, role) {
   const { error } = await db().from('app_users').update({ role }).eq('id', userId);

@@ -24,6 +24,14 @@ export function veilleParis(maintenant: Date = new Date()): string {
   return jourParis(new Date(maintenant.getTime() - 24 * 3600 * 1000));
 }
 
+// Décale un jour de Paris de n jours. On passe par midi : à minuit, un
+// changement d'heure ferait basculer la date sur la veille.
+export function ajouterJoursParis(jour: string, n: number): string {
+  const date = new Date(`${jour}T12:00:00Z`);
+  date.setUTCDate(date.getUTCDate() + n);
+  return jourParis(date);
+}
+
 export function estJourValide(valeur: unknown): valeur is string {
   return typeof valeur === "string" && /^\d{4}-\d{2}-\d{2}$/.test(valeur);
 }

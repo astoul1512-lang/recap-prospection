@@ -5,7 +5,7 @@
 // voit pas.
 
 import { estEgal, estVrai } from "../_shared/verifs.ts";
-import { ligneAppel } from "./ligne.ts";
+import { ligneAppel, lignesDuCabinet } from "./ligne.ts";
 import {
   bornesJournee,
   decalageParis,
@@ -124,4 +124,34 @@ Deno.test("la journée demandée est une journée de Paris, pas d'UTC", () => {
     debut: "2026-09-03T00:00:00+02:00",
     fin: "2026-09-03T23:59:59+02:00",
   });
+});
+
+Deno.test("lignes du cabinet : déduites des appels, sans réglage à tenir à jour", () => {
+  const lignes = lignesDuCabinet([
+    { direction: "out", from_number: "33755500001", to_number: "33612345678" },
+    { direction: "in", from_number: "33698765432", to_number: "33755500002" },
+    { direction: "out", from_number: "33755500001", to_number: "33611111111" },
+  ]);
+  estEgal(lignes.size, 2);
+  estVrai(lignes.has("755500001"));
+  estVrai(lignes.has("755500002"));
+});
+
+Deno.test("appel entre deux lignes du cabinet : interne, hors rapport, hors file", () => {
+  const interne = ligneAppel({
+    ...APPEL_TYPE, from_number: "33755500001", to_number: "33755500002",
+    incall_duration: 30, total_duration: 30,
+  }, new Set(["755500001", "755500002"]))!;
+  estEgal(interne.is_internal, true);
+  estVrai(!("needs_review" in interne), "un appel entre collègues n'a rien à qualifier");
+});
+
+Deno.test("appel vers l'extérieur : jamais marqué interne", () => {
+  const externe = ligneAppel(APPEL_TYPE, new Set(["755500001"]))!;
+  estEgal(externe.is_internal, false);
+  estEgal(externe.external_number, "+33612345678");
+});
+
+Deno.test("sans liste de lignes : rien n'est marqué interne", () => {
+  estEgal(ligneAppel(APPEL_TYPE)!.is_internal, false);
 });

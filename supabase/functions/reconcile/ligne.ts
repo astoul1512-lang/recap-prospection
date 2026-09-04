@@ -6,7 +6,7 @@
 // compteurs diffèreraient selon le chemin qu'un appel a pris pour arriver.
 
 import { jourParis, versISO } from "../_shared/dates.ts";
-import { numeroExterneOuDefaut, sensRingover } from "../_shared/phone.ts";
+import { chiffresSignificatifs, numeroExterneOuDefaut, sensRingover } from "../_shared/phone.ts";
 import {
   collaborateur,
   dureeAppel,
@@ -41,7 +41,31 @@ export function estAnonyme(appel: AppelRingover): boolean {
   return numero === "" || numero === "anonymous" || numero === "anonyme";
 }
 
-export function ligneAppel(appel: AppelRingover): Record<string, unknown> | null {
+// Les lignes du cabinet, déduites des appels eux-mêmes : sur un appel sortant
+// c'est `from_number`, sur un entrant `to_number`. Aucun réglage à tenir à
+// jour, aucun numéro écrit dans le dépôt — et la liste se corrige toute seule
+// quand une ligne est créée ou supprimée.
+//
+// À quoi ça sert : l'API REST ne dit pas si un appel est interne, contrairement
+// aux webhooks. Sans cette déduction, chaque appel entre collègues rattrapé par
+// la réconciliation partirait chez Jarvi, en reviendrait « inconnu », et
+// atterrirait dans la file « À qualifier ». Sur cinq jours de rattrapage, cela
+// représente des dizaines de questions posées à l'équipe pour rien.
+export function lignesDuCabinet(appels: AppelRingover[]): Set<string> {
+  const lignes = new Set<string>();
+  for (const appel of appels) {
+    const sortant = String(appel.direction ?? "").toLowerCase().startsWith("out");
+    const nôtre = sortant ? appel.from_number : appel.to_number;
+    const chiffres = chiffresSignificatifs(nôtre);
+    if (chiffres.length === 9) lignes.add(chiffres);
+  }
+  return lignes;
+}
+
+export function ligneAppel(
+  appel: AppelRingover,
+  lignesInternes?: Set<string>,
+): Record<string, unknown> | null {
   const callId = identifiant(appel);
   if (!callId) return null;
 
@@ -60,22 +84,24 @@ export function ligneAppel(appel: AppelRingover): Record<string, unknown> | null
   else issue = duree >= SEUIL_CONVERSATION_S ? "conversation" : "court";
 
   const anonyme = estAnonyme(appel);
+  const numero = numeroExterneOuDefaut(direction, appel.from_number, appel.to_number);
+  // Interne si l'interlocuteur est lui-même une ligne du cabinet.
+  const interne = Boolean(lignesInternes?.has(chiffresSignificatifs(numero)));
   const ligne: Record<string, unknown> = {
     call_id: callId,
     channel_id: typeof appel.channel_id === "string" ? appel.channel_id : null,
     direction: sensRingover(direction),
-    external_number: numeroExterneOuDefaut(direction, appel.from_number, appel.to_number),
+    external_number: numero,
     ringover_user_id: collaborateur(appel)?.ringover_user_id ?? null,
     started_at: debutISO,
     answered_at: versISO(appel.answered_time),
     ended_at: versISO(appel.end_time),
     duration_s: duree,
     status: etat,
-    // L'API REST ne porte pas `is_internal` : seuls les webhooks le donnent.
-    // Un appel interne rattrapé par ce chemin sera donc soumis à Jarvi, qui ne
-    // le connaîtra pas, et finira « à qualifier ». Rare et sans danger : mieux
-    // vaut une question de trop qu'un appel perdu.
-    is_internal: false,
+    // L'API REST ne porte pas `is_internal` : on le déduit des lignes du
+    // cabinet (voir `lignesDuCabinet`), sans quoi chaque appel entre collègues
+    // finirait dans la file « À qualifier ».
+    is_internal: interne,
     is_anonymous: anonyme,
     outcome: issue,
     machine_detection: appel.amd === true ? "MACHINE" : null,
@@ -87,7 +113,7 @@ export function ligneAppel(appel: AppelRingover): Record<string, unknown> | null
   };
 
   if (issue === "rdv") ligne.situation = "rdv";
-  if (issue === "court" && !anonyme) {
+  if (issue === "court" && !anonyme && !interne) {
     ligne.needs_review = true;
     ligne.review_reason = "court";
   }

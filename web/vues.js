@@ -605,7 +605,8 @@ export function vueAdmin(S) {
       </div>
       <div class="row2">
         <button class="btn sm" data-act="reconcilier">${jourIncomplet ? `Relancer la réconciliation du ${dateFR(jourIncomplet.day, true)}` : 'Relancer la réconciliation d’hier'}</button>
-        <button class="btn sm" data-act="testerWebhook">Tester la collecte</button></div>
+        <button class="btn sm" data-act="testerWebhook">Tester la collecte</button>
+        <button class="btn sm" data-act="rattraper">Rattraper les 5 derniers jours</button></div>
       <div class="note">Une tâche qui s'arrête ne prévient personne : ces trois dates sont le seul moyen de voir qu'elle tourne encore.</div></section>
 
     <section class="card"><h2>Données et sécurité</h2>
