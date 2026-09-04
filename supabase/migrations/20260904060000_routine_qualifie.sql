@@ -16,9 +16,19 @@
 -- manque un résumé, ET ce qui attend une qualification.
 --
 -- Voir docs/decisions.md, D6.
+--
+-- ATTENTION, deuxième fois : `create or replace view` n'autorise l'ajout de
+-- colonnes qu'**à la fin** de la liste. Ajouter `needs_review` au milieu
+-- revient à renommer les colonnes suivantes, et Postgres refuse. La première
+-- version de cette migration a échoué là-dessus, alors même que la migration
+-- précédente (20260904040000) documentait le piège. On supprime donc la vue
+-- avant de la recréer — toujours, sans réfléchir, pour toute vue qui change
+-- de forme.
 -- =====================================================================
 
-create or replace view public.v_a_resumer with (security_invoker = true) as
+drop view if exists public.v_a_resumer;
+
+create view public.v_a_resumer with (security_invoker = true) as
 select c.call_id,
        c.day,
        c.started_at,
