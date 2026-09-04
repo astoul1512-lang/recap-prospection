@@ -8,7 +8,7 @@
 // service role. Une seule définition de « admin », en un seul endroit.
 
 import { log, logErreur } from "../_shared/log.ts";
-import { reponse } from "../_shared/http.ts";
+import { reponse, servir } from "../_shared/http.ts";
 import { chargeSansVerification } from "../_shared/signature.ts";
 import { versE164 } from "../_shared/phone.ts";
 import {
@@ -34,7 +34,7 @@ async function corps(req: Request): Promise<Record<string, unknown>> {
   }
 }
 
-Deno.serve(async (req: Request): Promise<Response> => {
+servir(async (req: Request): Promise<Response> => {
   const debut = Date.now();
   if (req.method !== "POST") return reponse(405);
   if (!configurationPresente()) {

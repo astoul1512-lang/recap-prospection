@@ -14,7 +14,7 @@
 //    journal.
 
 import { log, logErreur } from "../_shared/log.ts";
-import { reponse } from "../_shared/http.ts";
+import { reponse, servir } from "../_shared/http.ts";
 import {
   appelantEstAdmin,
   appelsSansTranscription,
@@ -36,7 +36,7 @@ const CARACTERES_MAX = 60_000;
 
 const pause = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-Deno.serve(async (req: Request): Promise<Response> => {
+servir(async (req: Request): Promise<Response> => {
   const debut = Date.now();
   if (req.method !== "POST" && req.method !== "GET") return reponse(405);
   if (!configurationPresente() || !cleRingoverPresente()) {

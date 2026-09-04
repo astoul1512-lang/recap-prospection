@@ -59,3 +59,48 @@ export function reponse(statut: number, corps?: unknown): Response {
     headers: { "Content-Type": "application/json" },
   });
 }
+
+// --- Contrôle préalable du navigateur (CORS) ---------------------------------
+//
+// Avant d'appeler une fonction depuis une page web, le navigateur envoie une
+// requête `OPTIONS` pour demander l'autorisation. Une fonction qui répond 405 à
+// cette question — parce qu'elle n'accepte que POST — voit tous ses appels
+// bloqués **avant même d'être émis**. Rien n'arrive au serveur, rien n'apparaît
+// dans les journaux applicatifs, et l'utilisateur voit un échec sans cause.
+// C'est ce qui est arrivé le 4 septembre 2026 à toutes les fonctions appelées
+// depuis l'application.
+//
+// L'origine est vérifiée plutôt qu'ouverte à tous : cette application est
+// privée, aucune autre page n'a de raison de l'appeler. Ce n'est pas une
+// barrière de sécurité — le jeton reste le vrai contrôle — mais il n'y a
+// aucune raison d'être plus permissif que nécessaire.
+const ORIGINES_AUTORISEES = new Set([
+  "https://astoul1512-lang.github.io",
+  "http://localhost:8080",
+  "http://127.0.0.1:8080",
+]);
+
+export function enTetesCors(origine: string | null): Record<string, string> {
+  if (!origine || !ORIGINES_AUTORISEES.has(origine)) return {};
+  return {
+    "Access-Control-Allow-Origin": origine,
+    "Vary": "Origin",
+    "Access-Control-Allow-Headers":
+      "authorization, apikey, content-type, x-client-info, x-supabase-api-version",
+    "Access-Control-Allow-Methods": "POST, GET, OPTIONS",
+    "Access-Control-Max-Age": "86400",
+  };
+}
+
+// Enveloppe toute fonction appelable depuis le navigateur : répond au contrôle
+// préalable, puis pose les mêmes en-têtes sur la vraie réponse — sans quoi le
+// navigateur refuserait de la lire.
+export function servir(gestion: (req: Request) => Promise<Response>): void {
+  Deno.serve(async (req: Request): Promise<Response> => {
+    const cors = enTetesCors(req.headers.get("Origin"));
+    if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: cors });
+    const sortie = await gestion(req);
+    for (const [clef, valeur] of Object.entries(cors)) sortie.headers.set(clef, valeur);
+    return sortie;
+  });
+}

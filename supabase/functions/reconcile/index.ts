@@ -11,7 +11,7 @@
 // Elle ne fait qu'ajouter ce qui n'existait pas.
 
 import { log, logErreur } from "../_shared/log.ts";
-import { reponse } from "../_shared/http.ts";
+import { reponse, servir } from "../_shared/http.ts";
 import { ajouterJoursParis, estJourValide, veilleParis } from "../_shared/dates.ts";
 import {
   appelantEstAdmin,
@@ -35,7 +35,7 @@ const A_CLASSER_MAX = 200;
 // appels que plus rien ne viendrait résumer.
 const JOURS_MAX = 7;
 
-Deno.serve(async (req: Request): Promise<Response> => {
+servir(async (req: Request): Promise<Response> => {
   const debut = Date.now();
   if (req.method !== "POST" && req.method !== "GET") return reponse(405);
   if (!configurationPresente() || !cleRingoverPresente()) {

@@ -10,7 +10,7 @@
 // QUI parle — une tâche planifiée ou un membre actif — et refuse le reste.
 
 import { log, logErreur } from "../_shared/log.ts";
-import { reponse } from "../_shared/http.ts";
+import { reponse, servir } from "../_shared/http.ts";
 import {
   appelsAClasser,
   appelsParIdentifiants,
@@ -41,7 +41,7 @@ function identifiantsDemandes(corps: unknown): string[] {
     .slice(0, APPELS_MAX_PAR_DEMANDE);
 }
 
-Deno.serve(async (req: Request): Promise<Response> => {
+servir(async (req: Request): Promise<Response> => {
   const debut = Date.now();
   if (req.method !== "POST" && req.method !== "GET") return reponse(405);
   if (!configurationPresente() || !cleJarviPresente()) {

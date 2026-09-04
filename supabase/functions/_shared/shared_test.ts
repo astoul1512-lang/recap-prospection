@@ -1,4 +1,5 @@
 import { estEgal, estFaux, estVrai } from "./verifs.ts";
+import { enTetesCors } from "./http.ts";
 import { numeroExterneOuDefaut, sensRingover, versE164 } from "./phone.ts";
 import { analyserTemps, ecartMinutes, jourParis } from "./dates.ts";
 import { signerJwtHs512, verifierJwtHs512 } from "./signature.ts";
@@ -127,4 +128,33 @@ Deno.test("signature : l'algorithme annoncé par l'émetteur n'est jamais accept
 Deno.test("journaux : un numéro n'apparaît jamais en clair", () => {
   estEgal(numeroMasque("+33612345678"), "+33…78");
   estEgal(numeroMasque(null), "∅");
+});
+
+// --- Contrôle préalable du navigateur (CORS) ---------------------------------
+// Le défaut du 4 septembre 2026 : les fonctions répondaient 405 à la requête
+// `OPTIONS` du navigateur, qui bloquait alors l'appel avant de l'émettre. Rien
+// n'arrivait au serveur, rien n'apparaissait dans les journaux applicatifs, et
+// l'utilisateur voyait un échec sans cause. Ces tests montent la garde.
+
+Deno.test("cors : l'application autorisée reçoit les en-têtes nécessaires", () => {
+  const e = enTetesCors("https://astoul1512-lang.github.io");
+  estEgal(e["Access-Control-Allow-Origin"], "https://astoul1512-lang.github.io");
+  estVrai(e["Access-Control-Allow-Headers"].includes("authorization"));
+  estVrai(e["Access-Control-Allow-Headers"].includes("apikey"));
+  estVrai(e["Access-Control-Allow-Methods"].includes("OPTIONS"));
+  estEgal(e["Vary"], "Origin");
+});
+
+Deno.test("cors : le développement local est autorisé", () => {
+  estEgal(
+    enTetesCors("http://localhost:8080")["Access-Control-Allow-Origin"],
+    "http://localhost:8080",
+  );
+});
+
+Deno.test("cors : toute autre origine repart sans autorisation", () => {
+  estEgal(enTetesCors("https://exemple-malveillant.fr"), {});
+  estEgal(enTetesCors(null), {});
+  estEgal(enTetesCors(""), {});
+  estEgal(enTetesCors("https://astoul1512-lang.github.io.exemple.fr"), {});
 });
