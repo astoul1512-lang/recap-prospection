@@ -228,3 +228,63 @@ Deux endroits, qui doivent rester d'accord : `web/format.js`
 (`SEUIL_PERSONNE_EUE_S`, ce que l'écran affiche) et la vue `v_funnel_day`
 (migration `20260904050000`). Changer l'un sans l'autre ferait diverger le
 rapport et la base.
+
+---
+
+## D6 — La tâche du soir pose aussi les tags, pas seulement les résumés
+
+**Décidé le 4 septembre 2026, par Adrien.**
+
+### Ce qui était prévu
+
+La décision D1 confiait à la tâche planifiée un seul travail : rédiger les
+résumés des conversations d'une minute ou plus. La qualification des appels
+courts restait entièrement manuelle, dans la file « À qualifier » (`SPECS.md`
+§1.1.4).
+
+### Ce qu'on a constaté en regardant Modjo
+
+Modjo contient des appels de **52, 54, 56, 58 secondes** — avec transcription
+**et résumé déjà rédigé**. Exactement ceux que la vue ne demandait pas, et
+exactement ceux qui s'accumulent dans la file.
+
+Et ces résumés suffisent à trancher. Trois exemples réels du 3 septembre :
+
+- « recrutement géré en interne, nous sommes bien couverts » → *pas de besoin* ;
+- « il recommande Clémentine, qui pilote le sujet » → *porte d'entrée* ;
+- « erreur de numéro, ce n'était pas la bonne personne » → *rien*.
+
+Faire trancher ça à la main, appel par appel, alors que le texte est déjà
+écrit, c'est du travail donné pour rien. Le premier jour d'exploitation a
+produit **34 appels en file** — à ce rythme, la file devient un arriéré que
+personne n'ouvre, et le rapport perd sa raison d'être.
+
+### La règle retenue
+
+La vue `v_a_resumer` devient le plan de travail complet : ce qui manque un
+résumé **et** ce qui attend un tag. Seuil abaissé de 60 à **20 secondes** — en
+dessous, il n'y a pas de parole à transcrire, donc rien que Modjo puisse
+apporter, et ces appels restent à l'équipe.
+
+La tâche écrit `summary`, `next_step`, `situation`, `outcome`, et retire
+l'appel de la file.
+
+### Les deux garde-fous
+
+1. **Le droit de ne pas trancher.** Devant une conversation ambiguë, la tâche
+   écrit le résumé et laisse l'appel dans la file. Mieux vaut une question
+   posée qu'un tag inventé — c'est une consigne explicite du prompt, pas un
+   comportement espéré.
+2. **Les colonnes `kind_manual` et `outcome_manual` lui sont interdites.**
+   Elles sont réservées aux humains et priment sur elle. Un membre qui n'est
+   pas d'accord corrige d'un clic, et sa correction sort l'appel de la vue pour
+   toujours.
+
+### Ce que ça coûte
+
+La tâche décide à la place de l'équipe sur des appels qu'elle n'a pas
+entendus. Le risque est réel, mais il est borné : chaque décision est visible
+dans la fiche appel, chacune est corrigeable, et l'écran d'administration dit
+quand la tâche est passée pour la dernière fois. À surveiller la première
+semaine — en particulier le nombre d'appels qu'elle laisse en file, qui est le
+bon indicateur de sa prudence.
