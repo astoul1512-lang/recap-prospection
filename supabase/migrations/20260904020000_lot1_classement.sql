@@ -145,7 +145,25 @@ revoke all on function public.note_job_run(text, jsonb) from public, anon, authe
 grant execute on function public.note_job_run(text, jsonb) to service_role;
 
 -- ---------------------------------------------------------------------
--- 5. Ce qui reste à résumer
+-- 5. La note laissée en qualifiant un appel
+--
+-- L'écran « À qualifier » propose d'écrire une note libre (décideur, besoin,
+-- prochaine étape). Elle n'a pas sa place dans les colonnes de `calls` — un
+-- membre ne peut en modifier que six, et c'est très bien ainsi — mais elle a sa
+-- place dans le journal des corrections, à côté du reste de ce qu'a fait la
+-- personne. On ouvre donc un septième motif d'écriture, et un seul.
+-- ---------------------------------------------------------------------
+drop policy if exists corrections_member_insert on public.corrections;
+create policy corrections_member_insert on public.corrections
+  for insert to authenticated
+  with check (
+    public.is_active_user()
+    and author_id = auth.uid()
+    and field in ('export', 'listen', 'jarvi_recheck', 'note')
+  );
+
+-- ---------------------------------------------------------------------
+-- 6. Ce qui reste à résumer
 --
 -- La mise en forme des résumés est faite par une tâche Claude planifiée, pas
 -- par une fonction serveur (docs/decisions.md, D1). Cette vue est son plan de
@@ -179,7 +197,7 @@ where public.effective_kind(c) = 'prospection'
   );
 
 -- ---------------------------------------------------------------------
--- 6. Planifications
+-- 7. Planifications
 --
 -- `classify` en rattrapage : le classement normal se fait à la seconde où
 -- l'appel se termine, dans le webhook. Ce passage-ci ne sert qu'aux appels que

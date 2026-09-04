@@ -3,9 +3,10 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="version" content="v0.1.0">
+<meta name="version" content="v1.0.0">
 <meta name="robots" content="noindex, nofollow">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdnjs.cloudflare.com; style-src 'self' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; connect-src https://mwbwgnulwfyuqgdgwhqg.supabase.co https://mwbwgnulwfyuqgdgwhqg.functions.supabase.co; img-src 'self' data:; frame-ancestors 'none'">
+<meta name="referrer" content="no-referrer">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; connect-src https://mwbwgnulwfyuqgdgwhqg.supabase.co; img-src 'self' data:; base-uri 'none'; form-action 'none'; object-src 'none'; frame-ancestors 'none'">
 <title>Récap prospection</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&family=Instrument+Sans:wght@400;500;600&display=swap">
 <link rel="stylesheet" href="tokens.css">
@@ -15,14 +16,18 @@
 </head>
 <body>
 <div id="app">
-  <main class="attente">
+  <main class="plein">
     <p class="eyebrow">Cabinet Ekinox · application privée</p>
-    <h1>Récap prospection</h1>
-    <p class="chapeau">L'application est en cours d'installation. La connexion et le rapport quotidien arriveront à la prochaine livraison.</p>
-    <p class="pied">Version <span id="version">—</span> · accès sur invitation uniquement</p>
+    <h1 class="serif">Récap prospection</h1>
+    <p class="chapeau">Chargement…</p>
   </main>
 </div>
-<!-- supabase-js v2 UMD, version à épingler avec son hash integrity au lot 1 -->
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<div class="modal" id="modal" role="dialog" aria-modal="true"></div>
+<!-- supabase-js v2.115.0, servi depuis ce dépôt et non depuis un CDN : voir
+     docs/decisions.md, D3. La politique de sécurité du contenu n'autorise donc
+     aucun script venu d'ailleurs. -->
+<script src="vendor/supabase-js-2.115.0.js"></script>
 <script type="module" src="app.js"></script>
 </body>
 </html>

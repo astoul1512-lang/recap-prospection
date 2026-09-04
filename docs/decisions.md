@@ -122,3 +122,62 @@ ensuite, c'est le jeton de tâche.
 
 Une requête de plus par exécution planifiée, quelques millisecondes. Rien
 d'autre : une base reconstruite de zéro retire un nouveau jeton toute seule.
+
+---
+
+## D3 — `supabase-js` est servi par le dépôt, pas par un CDN
+
+**Décidé le 4 septembre 2026.**
+
+### Ce que dit la spécification
+
+`SPECS.md` §2.1 et §7.1 : « `@supabase/supabase-js` v2 en UMD depuis **cdnjs**
+(version épinglée + `integrity`) ».
+
+### Ce qui est fait à la place
+
+Le fichier est rangé dans `web/vendor/supabase-js-2.115.0.js` et servi par
+GitHub Pages, comme le reste de l'application. La politique de sécurité du
+contenu n'autorise donc **aucun** script venu d'ailleurs (`script-src 'self'`).
+
+### Pourquoi
+
+D'abord un fait : **`supabase-js` n'est pas sur cdnjs.** La consigne n'était pas
+applicable telle quelle.
+
+Ensuite, en cherchant l'équivalent ailleurs, la question s'est posée autrement :
+qu'est-ce qu'un CDN apporte ici ? Une application privée, six personnes, une
+page consultée quelques fois par jour. Aucun gain de vitesse mesurable. En
+revanche, une dépendance de plus : le jour où le CDN répond mal, l'application
+ne s'ouvre pas, et personne ne comprend pourquoi. Le fichier pesant 214 Ko —
+environ 50 Ko une fois compressé par GitHub Pages — le servir soi-même ne coûte
+rien.
+
+Bénéfice de bord : `script-src 'self'` sans exception. Il n'y a plus de sujet
+« intégrité du fichier distant », puisqu'il n'y a plus de fichier distant.
+
+### Ce que ça coûte
+
+Mettre à jour la bibliothèque devient un geste : télécharger la nouvelle
+version, changer le nom du fichier dans `index.html`. C'est aussi ce qui la rend
+visible — une mise à jour passe par un commit relu, pas par un numéro de version
+changé dans une URL.
+
+---
+
+## D4 — Les numéros inconnus comptent dans l'entonnoir
+
+**Décidé le 4 septembre 2026.**
+
+`SPECS.md` §1.2 définit les tentatives comme « les appels **sortants** composés
+(prospection + inconnus) », et la vue `v_funnel_day` fait de même. Le prototype,
+lui, ne comptait que la prospection.
+
+C'est la spécification qui l'emporte, pour une raison simple : un numéro qu'on
+n'a pas su rattacher au CRM reste un numéro qu'on a bel et bien composé.
+L'exclure ferait paraître l'effort plus faible qu'il n'est — et, plus
+sournoisement, le taux de décroché plus flatteur qu'il n'est, puisqu'on
+retirerait du dénominateur des appels souvent restés sans réponse.
+
+Les quatre chiffres de l'entonnoir portent donc sur le même ensemble : les
+appels du rapport, prospection et inconnus, hors internes et anonymes.
