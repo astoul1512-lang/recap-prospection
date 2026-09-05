@@ -7,7 +7,7 @@ Monitoring des appels de prospection du Cabinet Ekinox : Ringover pousse chaque 
 - Spécifications : `SPECS.md`. Prototype de référence : `design/prototype.html`.
 - Écarts assumés par rapport à la spécification : `docs/decisions.md`.
 - Conventions pour Claude Code : `CLAUDE.md`.
-- Version en production : v1.0.5
+- Version en production : v1.0.6
 
 ## Déploiement
 

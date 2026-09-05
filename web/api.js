@@ -203,6 +203,24 @@ export async function nombreSansTranscription() {
   return count ?? 0;
 }
 
+// Les appels que la routine a écartés du rapport. Visibles nulle part ailleurs
+// — c'est bien le but — mais une décision automatique invisible ET indéfaisable
+// serait une décision qu'on subit.
+export async function appelsEcartes() {
+  const { data, error } = await db()
+    .from('v_ecartes')
+    .select('call_id, day, started_at, duration_s, direction, company_name, contact_name, hors_rapport_motif, summary, user_name')
+    .limit(100);
+  if (error) throw error;
+  return data ?? [];
+}
+
+export async function reintegrer(callId) {
+  const { data, error } = await db().rpc('reintegrer_appel', { p_call_id: callId });
+  if (error) throw error;
+  return data === true;
+}
+
 export async function passagesTaches() {
   const { data, error } = await db().from('job_runs').select('name, ran_at, detail');
   if (error) throw error;

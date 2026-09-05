@@ -85,10 +85,16 @@ pour ça :
 ```sql
 update public.calls
    set hors_rapport = true,
-       summary = $r$…une phrase qui dit pourquoi…$r$,
+       hors_rapport_motif = $m$…en une phrase, pourquoi…$m$,
+       summary = $r$…le résumé de ce qui s'est dit…$r$,
        needs_review = false, review_reason = null
  where call_id = '…';
 ```
+
+**Le motif n'est pas facultatif.** Un appel qui disparaît du rapport sans
+justification est une décision qu'on ne peut pas discuter. Il s'affiche tel quel
+sur l'écran d'administration, section « Écartés du rapport », où un
+administrateur peut remettre l'appel dans le rapport d'un clic.
 
 Ne jamais l'écrire dans `tags` : ce tableau est réservé aux étiquettes posées
 dans Ringover. Un appel `hors_rapport` disparaît de la page du jour, des

@@ -609,6 +609,18 @@ export function vueAdmin(S) {
         <button class="btn sm" data-act="rattraper">Rattraper les 5 derniers jours</button></div>
       <div class="note">Une tâche qui s'arrête ne prévient personne : ces trois dates sont le seul moyen de voir qu'elle tourne encore.</div></section>
 
+    <section class="card"><h2>Écartés du rapport</h2>
+      <div class="intro">Des appels que la routine a jugés sans rapport avec la prospection — une discussion interne, un rappel personnel, un échange sans contenu commercial. Ils ne comptent nulle part. Si l'un d'eux n'aurait pas dû sortir, remettez-le.</div>
+      ${(a.ecartes || []).length
+        ? `<div class="ecartes">${a.ecartes.map((c) => `<div class="ecarte">
+            <div><b>${esc(c.company_name || c.contact_name || 'Numéro inconnu')}</b>
+              <span class="s">${dateFR(c.day, true)} · ${heureFR(c.started_at)} · ${esc(c.user_name || '—')} · ${duree(c.duration_s)}</span>
+              <div class="motif">${esc(c.hors_rapport_motif || c.summary || 'Aucun motif enregistré.')}</div></div>
+            <button class="btn sm" data-act="reintegrer" data-id="${esc(c.call_id)}">Remettre dans le rapport</button>
+          </div>`).join('')}</div>`
+        : '<div class="note">Aucun appel écarté.</div>'}
+    </section>
+
     <section class="card"><h2>Données et sécurité</h2>
       <div class="etats">
         <span><span class="led"></span> Conservation : appels 24 mois · événements bruts 90 jours · cache Jarvi 30 jours</span>

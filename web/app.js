@@ -163,13 +163,14 @@ async function charger() {
         api.tousLesMembres(), api.toutesLesLignes(), api.passagesTaches(),
         api.nombreSansTranscription().catch(() => 0),
       ]);
+      const ecartes = await api.appelsEcartes().catch(() => []);
       let sante = null;
       try {
         sante = await api.santeCollecte();
       } catch (e) {
         console.error('état de la collecte', e);
       }
-      S.admin = { membres, lignes, taches, sante, sansTranscription };
+      S.admin = { membres, lignes, taches, sante, sansTranscription, ecartes };
       S.completude = await api.completude(ajouterJours(S.aujourdhui, -14), S.aujourdhui);
       S.appels = [];
     } else {
@@ -679,6 +680,17 @@ async function agir(action, bouton) {
         toast(`${bilan.jours} journées relues · ${bilan.ajoutes} appel(s) rattrapé(s) · ${bilan.classes} classé(s) dans Jarvi.`);
         await charger();
       } catch (erreur) { echec('Rattrapage impossible', erreur); }
+      return;
+    }
+    case 'reintegrer': {
+      if (!id) return;
+      try {
+        const fait = await api.reintegrer(id);
+        toast(fait
+          ? 'Appel remis dans le rapport — il repasse par la file « À qualifier ».'
+          : 'Cet appel n’était plus écarté.');
+        await charger();
+      } catch (erreur) { echec('Remise impossible', erreur); }
       return;
     }
     case 'testerWebhook':
