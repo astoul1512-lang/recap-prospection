@@ -357,3 +357,46 @@ arrivée. C'est la sonde posée dans la fonction qui l'a révélé, pas un test.
 ### Ce que devient Modjo
 
 Un recours manuel, plus une dépendance. Aucun code ne l'appelle.
+
+
+---
+
+## D8 — Deux défauts trouvés par l'usage, le 5 septembre 2026
+
+Aucune décision d'architecture ici : deux erreurs, et ce qu'elles apprennent.
+
+### Les locuteurs étaient inversés sur tous les appels sortants
+
+Ringover numérote les canaux **par rôle** : `1` = celui qui appelle, `0` = celui
+qui décroche. Le code n'a regardé que le numéro de canal et a attribué
+systématiquement le canal 0 au collaborateur. C'est juste sur un appel entrant,
+faux sur tous les sortants — c'est-à-dire sur la quasi-totalité de la
+prospection.
+
+Ce que ça coûtait : un résumé bâti sur une transcription inversée retourne le
+sens de l'échange. « Il nous a envoyé promener » devient « nous l'avons envoyé
+promener ». Le texte reste plausible, personne ne relit la conversation, et le
+rapport ment sans qu'aucun voyant ne s'allume.
+
+Les transcriptions déjà stockées ont été corrigées sur place — échanger deux
+étiquettes est exact et instantané, là où tout retélécharger aurait fait
+disparaître les transcriptions de l'écran pendant une demi-heure.
+
+**Ce que ça apprend :** un identifiant de canal n'est pas un identifiant de
+personne. Chaque fois qu'une source numérote des rôles, il faut se demander par
+rapport à quoi.
+
+### « Hors rapport » n'avait pas de colonne, la routine a détourné `tags`
+
+La routine sait reconnaître un appel qui n'a rien à faire dans le rapport, même
+quand Jarvi connaît le numéro. Elle n'avait aucun endroit pour l'écrire :
+`review_reason` est une énumération fermée qui a refusé la valeur. Elle s'est
+repliée sur `tags`, un tableau de texte libre — ça marche, et ça ne se voit pas.
+
+Seize appels y étaient. Ils sont repris dans une vraie colonne `hors_rapport`,
+et l'étiquette est retirée.
+
+**Ce que ça apprend :** quand un traitement automatique contourne un schéma,
+c'est le schéma qu'il faut corriger. Un contournement qui fonctionne devient
+une convention non écrite, puis un piège pour celui qui lira `tags` en croyant
+n'y trouver que des étiquettes Ringover.

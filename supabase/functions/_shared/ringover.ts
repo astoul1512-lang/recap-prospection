@@ -196,18 +196,29 @@ function texteBrut(v: unknown): string {
 // Une transcription diarisée : `speeches[]` porte qui parle (`speaker_id` 0 ou
 // 1) et ce qui est dit. On en fait un texte lisible, une réplique par ligne —
 // c'est ce que la routine lira, et ce que l'équipe verra dans la fiche appel.
-export function assemblerParoles(donnees: unknown): { texte: string; segments: number } {
+export function assemblerParoles(
+  donnees: unknown,
+  sortant: boolean,
+): { texte: string; segments: number } {
   // La liste de répliques peut être la donnée elle-même, ou nichée sous l'un de
   // ces noms. On les essaie tous plutôt que de parier sur celui qu'on verra.
-  if (Array.isArray(donnees)) return assemblerListe(donnees);
+  if (Array.isArray(donnees)) return assemblerListe(donnees, sortant);
   const o = (donnees && typeof donnees === "object") ? donnees as Record<string, unknown> : {};
   for (const clef of ["speeches", "segments", "utterances", "sentences", "results"]) {
-    if (Array.isArray(o[clef])) return assemblerListe(o[clef] as unknown[]);
+    if (Array.isArray(o[clef])) return assemblerListe(o[clef] as unknown[], sortant);
   }
-  return assemblerListe([]);
+  return assemblerListe([], sortant);
 }
 
-function assemblerListe(brut: unknown[]): { texte: string; segments: number } {
+// Ringover numérote les canaux par rôle dans l'appel, pas par personne :
+// **1 = celui qui appelle, 0 = celui qui décroche**. Le collaborateur est donc
+// le canal 1 sur un appel sortant, et le canal 0 sur un entrant.
+//
+// Le code ne regardait que le numéro de canal : sur tous les appels sortants,
+// il attribuait au prospect les phrases du collaborateur et inversement. Un
+// résumé bâti là-dessus inverse les rôles — « il nous a envoyé promener »
+// devient « nous l'avons envoyé promener » — sans que rien ne le signale.
+function assemblerListe(brut: unknown[], sortant: boolean): { texte: string; segments: number } {
   const lignes: string[] = [];
   for (const p of brut) {
     if (typeof p === "string") {
@@ -219,16 +230,20 @@ function assemblerListe(brut: unknown[]): { texte: string; segments: number } {
     const dit = texteBrut(s.content) || texteBrut(s.text) || texteBrut(s.transcript);
     if (!dit) continue;
     const qui = s.speaker_id ?? s.speakerId ?? s.channelId ?? s.channel_id;
-    // Canal 1 = l'appelant, canal 0 = l'appelé (documentation Ringover).
-    const etiquette = qui === 0 || qui === "0"
-      ? "Collaborateur"
-      : (qui === 1 || qui === "1" ? "Interlocuteur" : null);
+    const canalAppelant = qui === 1 || qui === "1";
+    const canalDecroche = qui === 0 || qui === "0";
+    let etiquette: string | null = null;
+    if (canalAppelant) etiquette = sortant ? "Collaborateur" : "Interlocuteur";
+    else if (canalDecroche) etiquette = sortant ? "Interlocuteur" : "Collaborateur";
     lignes.push(etiquette ? `${etiquette} : ${dit}` : dit);
   }
   return { texte: lignes.join("\n"), segments: lignes.length };
 }
 
-export async function transcription(callId: string): Promise<ResultatTranscription> {
+export async function transcription(
+  callId: string,
+  sortant: boolean,
+): Promise<ResultatTranscription> {
   const cle = Deno.env.get("ringover");
   if (!cle) return { etat: "injoignable", motif: "cle_absente" };
 
@@ -304,7 +319,7 @@ export async function transcription(callId: string): Promise<ResultatTranscripti
   } else if (Array.isArray(donnees)) {
     sonde.clefs_donnees = ["(tableau)"];
   }
-  const { texte, segments } = assemblerParoles(donnees);
+  const { texte, segments } = assemblerParoles(donnees, sortant);
   sonde.segments = segments;
   sonde.caracteres = texte.length;
 

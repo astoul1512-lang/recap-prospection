@@ -44,7 +44,9 @@ S'il n'y a aucune ligne, passer directement à l'étape 3.
 ## 2. Rédiger, taguer, écrire
 
 La colonne `transcript` contient l'échange, une réplique par ligne, préfixée
-par `Collaborateur :` ou `Interlocuteur :`.
+par `Collaborateur :` (Ekinox) ou `Interlocuteur :` (le prospect). Ces
+étiquettes tiennent compte du sens de l'appel — c'est le collaborateur qui
+compose sur un sortant, le prospect qui appelle sur un entrant.
 
 **Le résumé.**
 
@@ -74,6 +76,23 @@ retenir que ce qui concerne le besoin du client.
 
 La dernière ligne compte autant que les autres : un appel où il ne s'est rien
 passé doit sortir de la file, avec une phrase qui le dit.
+
+**Et le cas qui n'est pas dans le tableau : l'appel n'a rien à faire dans le
+rapport.** Une discussion interne, un rappel personnel, un échange sans aucun
+contenu commercial — même quand Jarvi connaît le numéro. Il y a une colonne
+pour ça :
+
+```sql
+update public.calls
+   set hors_rapport = true,
+       summary = $r$…une phrase qui dit pourquoi…$r$,
+       needs_review = false, review_reason = null
+ where call_id = '…';
+```
+
+Ne jamais l'écrire dans `tags` : ce tableau est réservé aux étiquettes posées
+dans Ringover. Un appel `hors_rapport` disparaît de la page du jour, des
+colonnes, de la file, des compteurs et de ce plan de travail.
 
 **Le droit de ne pas trancher est une règle, pas une échappatoire.** Devant une
 conversation ambiguë : écrire le résumé, ne pas toucher au tag, ne pas toucher

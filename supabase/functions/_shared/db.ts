@@ -188,7 +188,7 @@ export async function appelsSansTranscription(
 ): Promise<Record<string, unknown>[]> {
   const r = await rest(
     `v_sans_transcription?transcript_attempts=lt.${essaisMax}` +
-      `&select=call_id,duration_s,transcript_attempts&order=started_at.desc&limit=${limite}`,
+      `&select=call_id,direction,duration_s,transcript_attempts&order=started_at.desc&limit=${limite}`,
   );
   if (!r.ok) return [];
   return (await corpsJson(r)) as Record<string, unknown>[];

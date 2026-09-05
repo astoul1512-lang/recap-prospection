@@ -69,7 +69,8 @@ servir(async (req: Request): Promise<Response> => {
     if (!callId) continue;
     const essais = typeof brut.transcript_attempts === "number" ? brut.transcript_attempts : 0;
 
-    const resultat = await transcription(callId);
+    // Le sens de l'appel décide de qui parle sur quel canal.
+    const resultat = await transcription(callId, brut.direction === "out");
     if (resultat.etat !== "injoignable" && sondes.length < 3) sondes.push(resultat.sonde);
 
     if (resultat.etat === "injoignable") {
