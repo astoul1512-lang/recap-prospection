@@ -1,0 +1,624 @@
+<title>Couverture des comptes</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600&family=Instrument+Sans:wght@400;500;600&display=swap">
+<style>
+:root{
+  color-scheme:light;
+  --ground:#f6f3ec; --surface:#fbf9f4; --surface-2:#ece7db; --surface-3:#f1ede4;
+  --hair:#d9d3c6; --hair-2:#cfc8b9;
+  --ink:#1e1b16; --ink-2:#5a554b; --muted:#8a8377;
+  --accent:#2f5d50; --accent-ink:#244a40; --accent-soft:#dcefe3; --accent-soft-2:#eef4ef;
+  --warn:#8a5a00; --warn-soft:#fff1cf; --crit:#8f3f1c; --crit-soft:#f6e3da;
+  --good:#1f5a3a; --good-soft:#dcefe3;
+  --bar:#2f5d50; --bar-2:#a8c9bb; --bar-vide:#e2ddd1;
+  --voile:rgba(30,27,22,.45);
+  --shadow:0 12px 32px -20px rgba(30,27,22,.45); --shadow-2:0 24px 60px -24px rgba(30,27,22,.5);
+  --font-ui:"Instrument Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --font-display:"Newsreader",Georgia,serif;
+  --radius:6px; --radius-lg:8px;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --ground:#16140f; --surface:#1e1b15; --surface-2:#2a261e; --surface-3:#231f18;
+    --hair:#332e25; --hair-2:#453f34;
+    --ink:#efeae0; --ink-2:#bdb6a8; --muted:#8a8377;
+    --accent:#6fb59f; --accent-ink:#8fcbb7; --accent-soft:#1f3a32; --accent-soft-2:#1b2b26;
+    --warn:#e2b45a; --warn-soft:#3a2c0f; --crit:#f0987a; --crit-soft:#3f2318;
+    --good:#7fcb9d; --good-soft:#1f3a2b;
+    --bar:#6fb59f; --bar-2:#33544a; --bar-vide:#2c281f;
+    --voile:rgba(0,0,0,.6);
+    --shadow:0 12px 32px -20px rgba(0,0,0,.8); --shadow-2:0 24px 60px -24px rgba(0,0,0,.9);
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --ground:#16140f; --surface:#1e1b15; --surface-2:#2a261e; --surface-3:#231f18;
+  --hair:#332e25; --hair-2:#453f34;
+  --ink:#efeae0; --ink-2:#bdb6a8; --muted:#8a8377;
+  --accent:#6fb59f; --accent-ink:#8fcbb7; --accent-soft:#1f3a32; --accent-soft-2:#1b2b26;
+  --warn:#e2b45a; --warn-soft:#3a2c0f; --crit:#f0987a; --crit-soft:#3f2318;
+  --good:#7fcb9d; --good-soft:#1f3a2b;
+  --bar:#6fb59f; --bar-2:#33544a; --bar-vide:#2c281f;
+  --voile:rgba(0,0,0,.6);
+  --shadow:0 12px 32px -20px rgba(0,0,0,.8); --shadow-2:0 24px 60px -24px rgba(0,0,0,.9);
+}
+
+*{box-sizing:border-box}
+body{background:var(--ground);color:var(--ink);font-family:var(--font-ui);font-size:14px;line-height:1.5}
+h1,h2,h3,h4{font-family:var(--font-display);font-weight:500;margin:0;text-wrap:balance}
+button{font:inherit;color:inherit}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.enveloppe{max-width:1280px;margin:0 auto;padding:18px 20px 64px}
+
+/* Sélecteur de proposition */
+.selecteur{display:flex;flex-wrap:wrap;align-items:center;gap:10px;background:var(--surface-2);border:1px solid var(--hair);border-radius:var(--radius-lg);padding:10px 14px;margin-bottom:18px}
+.selecteur .etiq{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+.selecteur button{padding:6px 14px;border:1px solid var(--hair-2);background:var(--surface);border-radius:999px;cursor:pointer;font-size:12.5px}
+.selecteur button[aria-pressed="true"]{background:var(--ink);color:var(--ground);border-color:var(--ink)}
+.selecteur .desc{font-size:12.5px;color:var(--ink-2);flex-basis:100%}
+
+/* Entête app */
+.entete{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:10px 18px;padding-bottom:12px;border-bottom:1px solid var(--hair)}
+.entete h1{font-size:28px;letter-spacing:-.01em}
+.entete .qui{font-size:12px;color:var(--muted)}
+.nav{display:flex;flex-wrap:wrap;gap:6px;margin:12px 0 16px}
+.nav button{font-size:12.5px;padding:5px 12px;border:1px solid var(--hair);background:var(--surface);color:var(--ink-2);border-radius:999px;cursor:pointer}
+.nav button[aria-current="page"]{background:var(--accent);border-color:var(--accent);color:var(--ground)}
+.nav button.inchange{opacity:.55;cursor:default}
+
+/* Barre d'outils commune */
+.outils{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-bottom:16px}
+.outils .etiq{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+.pil{font-size:12.5px;padding:5px 12px;border:1px solid var(--hair);background:transparent;color:var(--ink-2);border-radius:999px;cursor:pointer}
+.pil[aria-pressed="true"]{background:var(--accent-soft);border-color:var(--accent);color:var(--accent-ink);font-weight:500}
+.outils input[type=search]{font:inherit;font-size:13px;padding:6px 10px;border:1px solid var(--hair);border-radius:var(--radius);background:var(--surface);color:var(--ink);min-width:200px}
+.outils select{font:inherit;font-size:12.5px;padding:6px 8px;border:1px solid var(--hair);border-radius:var(--radius);background:var(--surface);color:var(--ink)}
+.outils .sep{flex:1}
+
+/* Pastilles & voyants */
+.past{display:inline-block;font-size:11px;padding:2px 8px;border-radius:999px;white-space:nowrap;font-weight:500;line-height:1.5}
+.past.good{background:var(--good-soft);color:var(--good)}
+.past.acc{background:var(--accent-soft);color:var(--accent-ink)}
+.past.warn{background:var(--warn-soft);color:var(--warn)}
+.past.crit{background:var(--crit-soft);color:var(--crit)}
+.past.neu{background:var(--surface-2);color:var(--ink-2)}
+.voyant{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:500}
+.voyant::before{content:"";width:9px;height:9px;border-radius:50%;background:currentColor;flex:none}
+.voyant.complet{color:var(--good)}
+.voyant.encours{color:var(--warn)}
+.voyant.vierge{color:var(--crit)}
+.points{display:inline-flex;gap:3px;vertical-align:middle}
+.points i{width:9px;height:9px;border-radius:50%;border:1.5px solid var(--bar);display:block}
+.points i.plein{background:var(--bar)}
+.points i.autre{border-color:var(--bar-2)}
+.points i.autre.plein{background:var(--bar-2)}
+.ope{font-size:9.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--accent-ink);border:1px solid var(--accent);border-radius:3px;padding:0 3px;margin-left:5px;vertical-align:1px}
+
+/* Chiffres */
+.chiffres{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));border:1px solid var(--hair);border-radius:var(--radius-lg);background:var(--surface);overflow:hidden;margin-bottom:18px}
+.chiffre{padding:12px 14px;border-right:1px solid var(--hair);text-align:left;background:transparent;border-top:0;border-bottom:0;border-left:0;cursor:pointer}
+.chiffre:last-child{border-right:0}
+.chiffre b{display:block;font-family:var(--font-display);font-size:26px;font-weight:500;font-variant-numeric:tabular-nums;line-height:1.15}
+.chiffre span{font-size:11.5px;color:var(--muted);display:block;margin-top:2px}
+.chiffre.alerte b{color:var(--crit)}
+.chiffre.bien b{color:var(--good)}
+.chiffre[aria-pressed="true"]{background:var(--accent-soft-2);box-shadow:inset 0 -3px 0 var(--accent)}
+
+/* ===== A — Cartes ===== */
+.cartes{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:14px}
+.carte{text-align:left;background:var(--surface);border:1px solid var(--hair);border-radius:var(--radius-lg);padding:0;cursor:pointer;overflow:hidden;display:flex;flex-direction:column;box-shadow:var(--shadow)}
+.carte:hover{border-color:var(--hair-2)}
+.carte .bande{height:5px;background:var(--bar-vide)}
+.carte.complet .bande{background:var(--good)}
+.carte.encours .bande{background:linear-gradient(90deg,var(--warn) var(--p),var(--bar-vide) var(--p))}
+.carte.vierge .bande{background:var(--crit)}
+.carte .corps{padding:12px 14px 13px;display:flex;flex-direction:column;gap:8px;flex:1}
+.carte .haut{display:flex;justify-content:space-between;gap:8px;align-items:baseline}
+.carte h3{font-size:19px;line-height:1.2}
+.carte .qui{font-size:11px;color:var(--muted);white-space:nowrap}
+.carte .ligne1{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--ink-2)}
+.carte .grand{font-family:var(--font-display);font-size:30px;font-weight:500;line-height:1;font-variant-numeric:tabular-nums}
+.carte .grand small{font-size:14px;color:var(--muted);font-family:var(--font-ui)}
+.carte .contacts{font-size:12px;color:var(--ink-2)}
+.carte .contacts b{font-weight:600;color:var(--ink)}
+.carte .pied{display:flex;justify-content:space-between;align-items:center;gap:8px;border-top:1px solid var(--hair);padding-top:9px;margin-top:auto;font-size:11.5px;color:var(--muted)}
+.carte .action{font-size:12px;color:var(--accent-ink);padding-left:10px;border-left:2px solid var(--accent)}
+
+/* ===== B — Registre ===== */
+.grille{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(320px,1fr);gap:20px;align-items:start}
+@media (max-width:960px){.grille{grid-template-columns:1fr}}
+.bloc{border:1px solid var(--hair);border-radius:var(--radius-lg);background:var(--surface);overflow:hidden}
+table.reg{width:100%;border-collapse:collapse;font-size:13px}
+table.reg th{font-size:10.5px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:600;text-align:left;padding:9px 12px;background:var(--surface-3);border-bottom:1px solid var(--hair);white-space:nowrap}
+table.reg th button{background:none;border:0;padding:0;font:inherit;color:inherit;cursor:pointer;text-transform:inherit;letter-spacing:inherit}
+table.reg th button[aria-sort]::after{content:" ↓";color:var(--accent)}
+table.reg td{padding:9px 12px;border-bottom:1px solid var(--hair);vertical-align:middle;font-variant-numeric:tabular-nums}
+table.reg tr:last-child td{border-bottom:0}
+table.reg tr.rangee{cursor:pointer}
+table.reg tr.rangee:hover td{background:var(--surface-3)}
+table.reg tr.rangee[aria-selected="true"] td{background:var(--accent-soft-2)}
+table.reg tr.rangee[aria-selected="true"] td:first-child{box-shadow:inset 3px 0 0 var(--accent)}
+table.reg .nom{font-family:var(--font-display);font-size:15.5px;display:block;line-height:1.2}
+table.reg .sous{font-size:11px;color:var(--muted)}
+table.reg .n{font-weight:600}
+table.reg .depuis{font-size:11px;color:var(--muted);display:block}
+.tabwrap{overflow-x:auto}
+
+/* ===== C — Par prospecteur ===== */
+.colonnes{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;align-items:start}
+@media (max-width:900px){.colonnes{grid-template-columns:1fr}}
+.colonne{border:1px solid var(--hair);border-radius:var(--radius-lg);background:var(--surface);overflow:hidden}
+.colonne>header{padding:12px 14px;border-bottom:1px solid var(--hair);background:var(--surface-3)}
+.colonne>header .nomp{display:flex;align-items:center;gap:9px}
+.avatar{width:30px;height:30px;border-radius:50%;background:var(--accent);color:var(--ground);display:inline-flex;align-items:center;justify-content:center;font-weight:600;font-size:12px;flex:none}
+.colonne>header h3{font-size:19px}
+.colonne>header .reste{margin-top:8px;font-size:12.5px;color:var(--ink-2)}
+.colonne>header .reste b{font-family:var(--font-display);font-size:24px;font-weight:500;color:var(--crit);font-variant-numeric:tabular-nums;margin-right:3px}
+.colonne>header .reste.ok b{color:var(--good)}
+.colonne>header .barre{height:6px;background:var(--bar-vide);border-radius:3px;margin-top:8px;overflow:hidden}
+.colonne>header .barre i{display:block;height:100%;background:var(--bar)}
+.tuile{display:block;width:100%;text-align:left;background:transparent;border:0;border-bottom:1px solid var(--hair);padding:10px 14px;cursor:pointer}
+.tuile:hover{background:var(--surface-3)}
+.tuile .t1{display:flex;justify-content:space-between;gap:8px;align-items:baseline}
+.tuile .t1 .nom{font-family:var(--font-display);font-size:16px}
+.tuile .t1 .depuis{font-size:11px;color:var(--muted);white-space:nowrap}
+.tuile .t2{display:flex;justify-content:space-between;gap:8px;align-items:center;margin-top:4px;font-size:12px;color:var(--ink-2)}
+.tuile .afaire{font-size:12px;color:var(--crit);margin-top:4px}
+.tuile.complet .afaire{color:var(--good)}
+.colonne details{border-top:1px solid var(--hair)}
+.colonne summary{padding:9px 14px;font-size:12px;color:var(--muted);cursor:pointer;list-style:none}
+.colonne summary::before{content:"▸ ";}
+.colonne details[open] summary::before{content:"▾ ";}
+
+/* ===== Fiche (commune) ===== */
+.fiche{background:var(--surface)}
+.fiche .bandeau{padding:14px 16px 10px;border-bottom:1px solid var(--hair);display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
+.fiche h2{font-size:23px;letter-spacing:-.01em;line-height:1.15}
+.fiche .sous{font-size:12px;color:var(--muted);margin-top:3px}
+.fiche .fermer{border:1px solid var(--hair);background:var(--surface);border-radius:999px;width:30px;height:30px;cursor:pointer;flex:none;font-size:16px;line-height:1}
+.etat{background:var(--accent-soft-2);border-left:3px solid var(--accent);padding:11px 13px;margin:14px 16px 0;border-radius:0 var(--radius) var(--radius) 0}
+.etat .titre{font-size:10.5px;text-transform:uppercase;letter-spacing:.08em;color:var(--accent-ink);margin-bottom:4px}
+.etat p{margin:0;font-size:13px}
+.afaire-bloc{margin:12px 16px 0;border:1px solid var(--hair);border-radius:var(--radius);background:var(--surface-3);padding:10px 13px}
+.afaire-bloc .titre{font-size:10.5px;text-transform:uppercase;letter-spacing:.08em;color:var(--crit);margin-bottom:6px}
+.afaire-bloc ul{margin:0;padding-left:0;list-style:none;font-size:12.5px}
+.afaire-bloc li{display:flex;gap:8px;align-items:baseline;padding:3px 0}
+.afaire-bloc li::before{content:"○";color:var(--crit);font-size:11px}
+.afaire-bloc li.suite::before{content:"→";color:var(--accent-ink)}
+.afaire-bloc li b{font-weight:600}
+.section{padding:0 16px 16px}
+.section>h3{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-family:var(--font-ui);font-weight:600;margin:16px 0 6px;padding-top:14px;border-top:1px solid var(--hair);display:flex;justify-content:space-between}
+.section>h3 .aide{font-weight:400;text-transform:none;letter-spacing:0;color:var(--muted)}
+.contact{display:grid;grid-template-columns:1fr auto auto;gap:6px 10px;align-items:center;padding:8px 6px;border-bottom:1px dotted var(--hair);cursor:pointer;border-radius:var(--radius)}
+.contact:hover{background:var(--surface-3)}
+.contact[aria-pressed="true"]{background:var(--accent-soft-2)}
+.contact:last-child{border-bottom:0}
+.contact .qui b{font-weight:600;font-size:13px}
+.contact .qui em{display:block;font-style:normal;font-size:11.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:260px}
+.contact .quand{font-size:11.5px;color:var(--ink-2);font-variant-numeric:tabular-nums;white-space:nowrap;text-align:right}
+.contact.jamais .quand{color:var(--crit);font-weight:500}
+.appel{padding:8px 0 8px 13px;border-left:2px solid var(--hair-2)}
+.appel+.appel{margin-top:4px}
+.appel .tete{display:flex;flex-wrap:wrap;gap:6px;align-items:baseline;font-size:11.5px;color:var(--muted);font-variant-numeric:tabular-nums}
+.appel .tete b{color:var(--ink);font-weight:600;font-size:12.5px}
+.appel p{margin:3px 0 0;font-size:12.5px;color:var(--ink-2)}
+.appel .suite{margin-top:3px;font-size:12px;color:var(--accent-ink)}
+.appel .suite::before{content:"→ "}
+.appel .liens{margin-top:4px;display:flex;gap:10px;font-size:11px}
+.appel .liens a{color:var(--accent-ink);text-decoration:none;border-bottom:1px dotted var(--accent)}
+.suivi{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px;padding:0 16px}
+.suivi div{background:var(--surface-3);border:1px solid var(--hair);border-radius:var(--radius);padding:8px 10px}
+.suivi b{display:block;font-family:var(--font-display);font-size:20px;font-weight:500;font-variant-numeric:tabular-nums;line-height:1.1}
+.suivi span{font-size:10.5px;color:var(--muted)}
+.vide{padding:40px 16px;text-align:center;color:var(--muted);font-size:13px}
+
+/* Fiche en surcouche (A) et tiroir (C) */
+.voile{position:fixed;inset:0;background:var(--voile);display:flex;align-items:flex-start;justify-content:center;padding:32px 16px;overflow:auto;z-index:20}
+.voile .fiche{width:min(720px,100%);border:1px solid var(--hair);border-radius:var(--radius-lg);box-shadow:var(--shadow-2)}
+.tiroir{position:fixed;top:0;right:0;bottom:0;width:min(520px,100%);overflow:auto;z-index:20;border-left:1px solid var(--hair);box-shadow:var(--shadow-2)}
+.tiroir-voile{position:fixed;inset:0;background:var(--voile);z-index:19}
+.fiche.cote{position:sticky;top:14px;border:1px solid var(--hair);border-radius:var(--radius-lg);max-height:calc(100vh - 28px);overflow:auto}
+.note{margin-top:22px;border:1px dashed var(--hair-2);border-radius:var(--radius-lg);padding:12px 14px;background:var(--surface-3)}
+.note h3{font-family:var(--font-ui);font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--warn);margin:0 0 6px}
+.note p{margin:0;font-size:12.5px;color:var(--ink-2)}
+@media (prefers-reduced-motion:no-preference){.carte,.tuile,.pil,.contact{transition:background .12s ease,border-color .12s ease}}
+</style>
+
+<div class="enveloppe">
+  <div class="selecteur" id="selecteur">
+    <span class="etiq">Proposition</span>
+    <button type="button" data-prop="A" aria-pressed="true">A · Cartes</button>
+    <button type="button" data-prop="B" aria-pressed="false">B · Registre</button>
+    <button type="button" data-prop="C" aria-pressed="false">C · Par prospecteur</button>
+    <span class="desc" id="desc"></span>
+  </div>
+
+  <div class="entete">
+    <h1>Récap prospection</h1>
+    <span class="qui">Adrien · jeudi 4 septembre</span>
+  </div>
+  <nav class="nav" aria-label="Vues">
+    <button type="button" class="inchange" title="Page inchangée">Jour</button>
+    <button type="button" class="inchange" title="Page inchangée">Semaine</button>
+    <button type="button" aria-current="page">Sociétés</button>
+    <button type="button" class="inchange" title="Page inchangée">À qualifier</button>
+    <button type="button" class="inchange" title="Page inchangée">Équipe</button>
+  </nav>
+
+  <div id="app"></div>
+
+  <div class="note">
+    <h3>Avant de développer</h3>
+    <p>Deux champs à créer dans Jarvi : <b>l'attribution</b> du compte à un prospecteur (fiche société) et le marqueur <b>opérationnel</b> sur les contacts à joindre absolument (fiche contact, sigle <span class="ope">OP</span> ici). Les données de la maquette viennent de vos vrais appels des derniers jours ; l'attribution et les marqueurs sont simulés.</p>
+  </div>
+</div>
+<div id="surcouche"></div>
+
+<script>
+/* ---------- Données (réelles pour les appels, simulées pour attribution / OP) ---------- */
+const SIT = {
+  rdv:['Rendez-vous pris','good'], ouvert:['Décideur ouvert','acc'], porte:['Porte d’entrée nommée','acc'],
+  client:['Client actif','good'], direct:['Recrute en direct','crit'], besoin:['Pas de besoin','neu'],
+  relance:['Relance à prévoir','warn'], bache:['Bâché','crit'], rien:['Sans matière','neu']
+};
+const ORDRE_SIT = ['rdv','ouvert','porte','relance','client','direct','besoin','bache','rien'];
+const PROSPECTEURS = ['Martin Benyekkou','Julien Fravallo','Rémy Basdim'];
+const AUJ = new Date('2026-09-04');
+const jours = d => Math.round((AUJ - new Date(d)) / 86400000);
+const dateFr = d => new Date(d).toLocaleDateString('fr-FR',{day:'2-digit',month:'short'});
+const prenom = s => s.split(' ')[0];
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+const COMPTES = [
+  { nom:'Parallel (ex-Kiosk)', secteur:'Santé / IA', a:'Julien Fravallo', etat:"Compte fermé pour l’instant : le fondateur a demandé à ne plus être rappelé et le CTO travaille déjà avec d’autres cabinets. Seule ouverture : Quentin Chabert doit transmettre notre présentation à Valrand (RH).",
+    contacts:[
+      {n:'Paul Lafforgue', f:'Founder', op:true, d:'2026-09-04', s:'bache'},
+      {n:'Chris Rydahl', f:'Cofounder & CTO', op:true, d:'2026-09-04', s:'besoin'},
+      {n:'Quentin Chabert', f:'Founding engineer', op:true, d:'2026-09-04', s:'porte'},
+      {n:'Maxime Reiz', f:'Software Engineer', op:false, d:'2026-09-04', s:'rien'},
+      {n:'Valrand (prénom inconnu)', f:'RH — nommée par Quentin Chabert', op:true, d:null, s:null}
+    ],
+    appels:[
+      {n:'Paul Lafforgue', par:'Julien', d:'2026-09-04', h:'16:12', s:'bache', r:"Paul Lafforgue (Founder) refuse tout contact : pas de besoin de recrutement, demande de ne plus être rappelé."},
+      {n:'Quentin Chabert', par:'Julien', d:'2026-09-04', h:'15:48', s:'porte', r:"Chez Parallel, les recrutements ne passent pas par des cabinets ; la personne en charge serait Valrand (RH), à qui il doit transférer les infos par mail.", e:"Envoyer un mail de présentation à transférer à Valrand (RH)."},
+      {n:'Chris Rydahl', par:'Julien', d:'2026-09-04', h:'15:31', s:'besoin', r:"Chris Rydahl (CTO/cofondateur) travaille déjà avec plusieurs cabinets et recontactera Ekinox uniquement en cas de besoin futur."},
+      {n:'Maxime Reiz', par:'Julien', d:'2026-09-04', h:'15:20', s:'rien', r:"Maxime Reiz (Software Engineer) renvoie vers ses fondateurs sans autre information."}
+    ]},
+  { nom:'Groupe La Centrale', secteur:'Média / Marketplace', a:'Martin Benyekkou', etat:"Quatre décideurs tech identifiés, un seul joint. Le CTO et les deux deputy CTO n’ont jamais été appelés : c’est le compte où il reste le plus à faire.",
+    contacts:[
+      {n:'Marouen Harmassi', f:'Tech Lead / Fullstack Senior', op:false, d:'2026-09-02', s:'porte'},
+      {n:'David Remond', f:'CTO', op:true, d:null, s:null},
+      {n:'Salim A.', f:'Deputy CTO', op:true, d:null, s:null},
+      {n:'Yoann Franc', f:'Deputy CTO & Operational Excellence', op:true, d:null, s:null}
+    ],
+    appels:[
+      {n:'Marouen Harmassi', par:'Martin', d:'2026-09-02', h:'11:05', s:'porte', r:"Marouen Harmassi (Tech Lead) oriente vers la direction technique pour tout sujet recrutement ; trois décideurs nommés.", e:"Appeler David Remond (CTO) puis les deux deputy CTO."}
+    ]},
+  { nom:'Isea', secteur:'Industrie / Data', a:'Rémy Basdim', etat:"Un data scientist a livré l’information clé : chez Isea les postes techniques sont mandatés par les RH, pas par la technique. Personne côté RH n’a encore été appelé.",
+    contacts:[
+      {n:'Rony-William Levy', f:'Data Scientist', op:false, d:'2026-09-03', s:'ouvert'},
+      {n:'Benjamin Borgy', f:'Lead Data Scientist', op:true, d:null, s:null},
+      {n:'Olivier Rodriguez', f:'Responsable Exploitation Informatique', op:true, d:null, s:null},
+      {n:'Jérémy Coutant', f:'Ingénieur projets', op:false, d:null, s:null}
+    ],
+    appels:[
+      {n:'Rony-William Levy', par:'Rémy', d:'2026-09-03', h:'14:22', s:'ouvert', r:"Chez Isea, les postes techniques passent par des cabinets, mandatés par les RH et non par la technique.", e:"Recontacter la RH d’Isea pour les postes techniques mandatés à des cabinets."}
+    ]},
+  { nom:'Camping-Car Park', secteur:'Tourisme / Mobilité', a:'Rémy Basdim', etat:"Compte chaud mais différé : recrutements IT/DevOps prévus après la restructuration liée aux changements de CEO et CTO. Rappel convenu en décembre.",
+    contacts:[
+      {n:'Enard Renette', f:'Head of IT / Tech Lead', op:true, d:'2026-09-02', s:'relance'},
+      {n:'Nouveau CTO (arrivée annoncée)', f:'CTO — à identifier', op:true, d:null, s:null}
+    ],
+    appels:[
+      {n:'Enard Renette', par:'Rémy', d:'2026-09-02', h:'17:02', s:'relance', r:"Enard Renette (Head of IT) prévoit de recruter en IT/DevOps après restructuration suite aux changements de CEO/CTO ; rappel convenu en décembre.", e:"Rappeler Enard Renette en décembre pour faire le point sur les recrutements."},
+      {n:'Enard Renette', par:'Rémy', d:'2026-09-02', h:'10:14', s:'relance', r:"Déjà en contact avec Tristan en février. Rappel prévu le 02/09 à 17 h."}
+    ]},
+  { nom:'Artefact', secteur:'Conseil / Data', a:'Julien Fravallo', etat:"CTO joint : il ne gère pas le recrutement et renvoie vers Pauline Chapelle (RH), jamais appelée à ce jour. Une data engineer doit revenir vers nous.",
+    contacts:[
+      {n:'Aurélien Gustan', f:'CTO', op:true, d:'2026-09-03', s:'porte'},
+      {n:'Miriam Benallou', f:'Senior Data Engineer', op:false, d:'2026-09-03', s:'relance'},
+      {n:'Robin Doumerc', f:'CTO', op:true, d:null, s:null},
+      {n:'Pauline Chapelle', f:'RH — nommée par le CTO', op:true, d:null, s:null}
+    ],
+    appels:[
+      {n:'Aurélien Gustan', par:'Julien', d:'2026-09-03', h:'11:40', s:'porte', r:"Aurélien Gustan (CTO) ne gère pas le recrutement ; contact RH indiqué : Pauline Chapelle.", e:"Contacter Pauline Chapelle (RH, Artefact) au sujet des postes ouverts."},
+      {n:'Miriam Benallou', par:'Julien', d:'2026-09-03', h:'11:12', s:'relance', r:"Miriam Benallou (Senior Data Engineer) n’est pas décisionnaire mais doit se renseigner sur le recours à des cabinets et recontacter Ekinox.", e:"Relancer si pas de retour après le SMS envoyé."}
+    ]},
+  { nom:'Dashlane', secteur:'Éditeur logiciel', a:'Martin Benyekkou', etat:"Quatre contacts tech appelés en une journée, aucun décideur recrutement atteint. Le directeur ingénierie reste à joindre.",
+    contacts:[
+      {n:'Aochen Y.', f:'Director of Engineering', op:true, d:null, s:null},
+      {n:'Mariem Louati', f:'Engineering Manager', op:true, d:'2026-09-03', s:'direct'},
+      {n:'Antoine de Rengervé', f:'Engineering Manager', op:true, d:'2026-09-03', s:'besoin'},
+      {n:'Jean-Baptiste Rudant', f:'Senior Software Engineer', op:false, d:'2026-09-03', s:'rien'}
+    ],
+    appels:[
+      {n:'Mariem Louati', par:'Martin', d:'2026-09-03', h:'15:05', s:'direct', r:"Mariem Louati (Engineering Manager) indique que Dashlane recrute en interne et ne passe pas par des cabinets."},
+      {n:'Antoine de Rengervé', par:'Martin', d:'2026-09-03', h:'14:41', s:'besoin', r:"Antoine de Rengervé (Engineering Manager) n’a pas de poste ouvert dans son équipe cette année."},
+      {n:'Jean-Baptiste Rudant', par:'Martin', d:'2026-09-03', h:'14:20', s:'rien', r:"Appel coupé après la présentation, aucune information."}
+    ]},
+  { nom:'Kayrros', secteur:'Énergie / Data', a:'Julien Fravallo', etat:"Trois opérationnels identifiés, aucun joint : les appels butent sur le standard. Compte à retravailler par un autre canal.",
+    contacts:[
+      {n:'Thomas Coquet', f:'Chief Technical Officer', op:true, d:null, s:null},
+      {n:'Mathieu Bourgault', f:'Head of Infrastructure & Security', op:true, d:'2026-09-03', s:'rien'},
+      {n:'Victor Touchet', f:'Tech Lead', op:false, d:null, s:null}
+    ],
+    appels:[
+      {n:'Mathieu Bourgault', par:'Julien', d:'2026-09-03', h:'09:58', s:'rien', r:"Appel bloqué au standard ; message transmis, mise en relation non aboutie.", e:"Rappeler Mathieu Bourgault sur sa ligne directe."}
+    ]},
+  { nom:'Akeneo', secteur:'Éditeur logiciel', a:'Martin Benyekkou', etat:"Quatre contacts joints le 31 août, tous en dehors du circuit de décision. Rien depuis : le compte dort.",
+    contacts:[
+      {n:'Valentin Rabanelly', f:'Director of Software Engineering', op:true, d:'2026-08-31', s:'besoin'},
+      {n:'Nicolas Métriau', f:'Senior Engineering Manager', op:true, d:'2026-08-31', s:'direct'},
+      {n:'Antoine Arrivé', f:'Software Engineer', op:false, d:'2026-08-31', s:'rien'},
+      {n:'Quentin Mallet', f:'Développeur back-end', op:false, d:'2026-08-31', s:'rien'}
+    ],
+    appels:[
+      {n:'Valentin Rabanelly', par:'Martin', d:'2026-08-31', h:'16:30', s:'besoin', r:"Valentin Rabanelly (Director of Software Engineering) n’a pas de recrutement en cours ; équipe stabilisée."},
+      {n:'Nicolas Métriau', par:'Martin', d:'2026-08-31', h:'16:02', s:'direct', r:"Nicolas Métriau (Senior Engineering Manager) : Akeneo recrute en direct via son équipe talent."}
+    ]},
+  { nom:'Echosens', secteur:'Santé / Dispositifs', a:'Martin Benyekkou', etat:"Compte actif : la RH suit les postes en cours et reste joignable. C’est le seul contact du compte — un deuxième interlocuteur technique serait utile.",
+    contacts:[
+      {n:'Typhaine Bomongo', f:'HR Officer', op:true, d:'2026-09-04', s:'client'}
+    ],
+    appels:[
+      {n:'Typhaine Bomongo', par:'Martin', d:'2026-09-04', h:'10:15', s:'client', r:"Typhaine Bomongo (HR Officer) fait le point sur les postes en cours ; process de recrutement inchangé.", e:"Envoyer les profils validés avant vendredi."}
+    ]},
+  { nom:'Edenred', secteur:'Services aux entreprises', a:'Martin Benyekkou', etat:"Deux CTO identifiés, six appels passés, aucun échange abouti. À reprendre sur un autre créneau.",
+    contacts:[
+      {n:'Frederic Nguyen-Barnier', f:'CTO Global Platform & CDIO France', op:true, d:'2026-09-04', s:'rien'},
+      {n:'Émilien Bassez', f:'Deputy CTO', op:true, d:'2026-09-04', s:'rien'}
+    ],
+    appels:[
+      {n:'Frederic Nguyen-Barnier', par:'Martin', d:'2026-09-04', h:'09:31', s:'rien', r:"Messagerie. Aucun échange."},
+      {n:'Émilien Bassez', par:'Martin', d:'2026-09-04', h:'09:27', s:'rien', r:"Messagerie. Aucun échange."}
+    ]},
+  { nom:'Kolecto', secteur:'Fintech', a:'Rémy Basdim', etat:"Deux engineering managers joints, dont un freelance : les recrutements se décident au niveau du leader engineering, pas encore appelé.",
+    contacts:[
+      {n:'Baptiste Tamburini', f:'Engineering Leader', op:true, d:null, s:null},
+      {n:'Camille Nivelle', f:'Engineering Manager', op:true, d:'2026-09-04', s:'porte'},
+      {n:'Valentin Cosson', f:'Engineering Manager (freelance)', op:false, d:'2026-09-04', s:'besoin'},
+      {n:'Raphaël T.', f:'Lead Software Engineer', op:false, d:'2026-09-04', s:'rien'}
+    ],
+    appels:[
+      {n:'Camille Nivelle', par:'Rémy', d:'2026-09-04', h:'14:50', s:'porte', r:"Camille Nivelle (Engineering Manager) renvoie vers Baptiste Tamburini, qui pilote les recrutements tech.", e:"Appeler Baptiste Tamburini (Engineering Leader)."},
+      {n:'Valentin Cosson', par:'Rémy', d:'2026-09-04', h:'14:31', s:'besoin', r:"Valentin Cosson (EM freelance) n’a pas de besoin sur son périmètre."}
+    ]},
+  { nom:'Babbar', secteur:'Tech / Search', a:'Rémy Basdim', etat:"Deux ingénieurs renvoient vers Guillaume Pitel, cofondateur, qui décide seul. Il a une mauvaise expérience cabinet à effacer ; c’est lui qu’il faut avoir.",
+    contacts:[
+      {n:'Guillaume Pitel', f:'Cofounder & CTO', op:true, d:null, s:null},
+      {n:'Maxime Beucher', f:'Software Engineer', op:false, d:'2026-09-04', s:'porte'},
+      {n:'Aurélien Bournonville', f:'Ingénieur de recherche', op:false, d:'2026-09-03', s:'porte'}
+    ],
+    appels:[
+      {n:'Maxime Beucher', par:'Rémy', d:'2026-09-04', h:'11:22', s:'porte', r:"Maxime Beucher oriente vers Guillaume Pitel pour le recrutement ; Babbar a des offres actives sur Welcome to the Jungle.", e:"Contacter Guillaume Pitel (Babbar)."},
+      {n:'Aurélien Bournonville', par:'Rémy', d:'2026-09-03', h:'16:44', s:'porte', r:"Redirige vers Guillaume Pitel ; Babbar aurait eu une mauvaise expérience avec un cabinet.", e:"Recontacter Guillaume Pitel (06 26 22 24 31)."}
+    ]}
+];
+
+/* ---------- Calculs ---------- */
+function couv(c){
+  const op = c.contacts.filter(x => x.op);
+  return { total:c.contacts.length, joints:c.contacts.filter(x => x.d).length,
+           op:op.length, opJoints:op.filter(x => x.d).length, opRestants:op.filter(x => !x.d) };
+}
+function dernier(c){ const ds = c.contacts.filter(x => x.d).map(x => x.d).sort(); return ds.length ? ds[ds.length-1] : null; }
+function etatCouv(c){ const k = couv(c); if(!dernier(c)) return 'vierge'; return k.opJoints === k.op ? 'complet' : 'encours'; }
+function libEtat(c){ const k = couv(c); const e = etatCouv(c);
+  return e === 'complet' ? 'Complet' : e === 'vierge' ? 'Jamais appelé' : `En cours · ${k.opJoints}/${k.op}`; }
+function sitChaude(c){ const ss = c.contacts.map(x => x.s).filter(Boolean); ss.sort((a,b) => ORDRE_SIT.indexOf(a)-ORDRE_SIT.indexOf(b)); return ss[0] || null; }
+function prochaine(c){ const a = c.appels.find(x => x.e); return a ? a.e : (couv(c).opRestants[0] ? `Appeler ${couv(c).opRestants[0].n}` : null); }
+function points(c){ return `<span class="points">${c.contacts.map(x => `<i class="${x.op?'':'autre'}${x.d?' plein':''}" title="${esc(x.n)}${x.d?' · joint le '+dateFr(x.d):' · jamais appelé'}"></i>`).join('')}</span>`; }
+function pastille(s){ return s ? `<span class="past ${SIT[s][1]}">${SIT[s][0]}</span>` : ''; }
+function voyant(c){ const e = etatCouv(c); return `<span class="voyant ${e}">${libEtat(c)}</span>`; }
+
+/* ---------- État ---------- */
+let prop = 'A', filtre = 'tous', recherche = '', tri = 'afaire', vue = 'tous', choisi = null, contactFiltre = null;
+const DESC = {
+  A:"Chaque compte est une carte avec un bandeau coloré : vert = tous les opérationnels joints, orange = en cours, rouge = jamais appelé. Le grand chiffre dit ce qu'il reste à faire. On clique, la fiche s'ouvre par-dessus.",
+  B:"Un registre trié, colonnes cliquables, la fiche s'ouvre à droite sans quitter la liste. Le plus dense : on balaie 30 comptes d'un coup d'œil.",
+  C:"Une colonne par prospecteur, avec son reste à faire en tête. C'est la vue « qui a fait quoi » pour piloter l'équipe ; la fiche s'ouvre dans un tiroir."
+};
+
+function visibles(){
+  let v = COMPTES.filter(c => filtre === 'tous' || c.a === filtre);
+  if (recherche) { const q = recherche.toLowerCase(); v = v.filter(c => c.nom.toLowerCase().includes(q) || c.contacts.some(x => x.n.toLowerCase().includes(q))); }
+  if (vue === 'afaire') v = v.filter(c => couv(c).opRestants.length > 0);
+  if (vue === 'vierge') v = v.filter(c => !dernier(c));
+  if (vue === 'dormant') v = v.filter(c => { const d = dernier(c); return d && jours(d) >= 3; });
+  if (vue === 'complet') v = v.filter(c => etatCouv(c) === 'complet');
+  const cle = {
+    afaire: c => -(couv(c).opRestants.length * 10 + (dernier(c) ? Math.min(jours(dernier(c)),9) : 9)),
+    dernier: c => dernier(c) ? -new Date(dernier(c)) : 1,
+    nom: c => c.nom.toLowerCase(),
+    prospecteur: c => c.a
+  }[tri];
+  return v.slice().sort((a,b) => { const x = cle(a), y = cle(b); return x < y ? -1 : x > y ? 1 : 0; });
+}
+
+/* ---------- Rendu ---------- */
+const app = document.getElementById('app');
+const surcouche = document.getElementById('surcouche');
+
+function chiffres(){
+  const v = COMPTES.filter(c => filtre === 'tous' || c.a === filtre);
+  const opRestants = v.reduce((n,c) => n + couv(c).opRestants.length, 0);
+  const complets = v.filter(c => etatCouv(c) === 'complet').length;
+  const vierges = v.filter(c => !dernier(c)).length;
+  const dormants = v.filter(c => { const d = dernier(c); return d && jours(d) >= 3; }).length;
+  const b = (k,cls,n,l) => `<button type="button" class="chiffre ${cls}" data-vue="${k}" aria-pressed="${vue===k}"><b>${n}</b><span>${l}</span></button>`;
+  return `<div class="chiffres">
+    ${b('tous','',v.length,'comptes attribués')}
+    ${b('afaire','alerte',opRestants,'opérationnels à appeler')}
+    ${b('vierge','',vierges,'comptes jamais entamés')}
+    ${b('dormant','',dormants,'sans appel depuis 3 j et plus')}
+    ${b('complet','bien',complets,'comptes complets')}
+  </div>`;
+}
+function outils(avecTri){
+  return `<div class="outils">
+    <span class="etiq">Comptes de</span>
+    ${['tous',...PROSPECTEURS].map(p => `<button type="button" class="pil" data-filtre="${p}" aria-pressed="${filtre===p}">${p==='tous'?'Toute l’équipe':prenom(p)}</button>`).join('')}
+    <span class="sep"></span>
+    <input type="search" id="rech" placeholder="Société ou contact…" value="${esc(recherche)}" aria-label="Rechercher">
+    ${avecTri ? `<select id="tri" aria-label="Trier">
+      <option value="afaire" ${tri==='afaire'?'selected':''}>À faire en premier</option>
+      <option value="dernier" ${tri==='dernier'?'selected':''}>Dernier appel</option>
+      <option value="nom" ${tri==='nom'?'selected':''}>Nom A → Z</option>
+      <option value="prospecteur" ${tri==='prospecteur'?'selected':''}>Par prospecteur</option>
+    </select>` : ''}
+  </div>`;
+}
+
+function fiche(c, mode){
+  if (!c) return `<div class="fiche cote"><div class="vide">Choisis un compte dans la liste pour voir qui a été joint, ce qui s’est dit et ce qu’il reste à faire.</div></div>`;
+  const k = couv(c), d = dernier(c);
+  const appels = contactFiltre ? c.appels.filter(a => a.n === contactFiltre) : c.appels;
+  const afaire = [
+    ...k.opRestants.map(x => `<li><b>${esc(x.n)}</b> — ${esc(x.f)} · jamais appelé</li>`),
+    ...c.appels.filter(a => a.e).map(a => `<li class="suite">${esc(a.e)}</li>`)
+  ];
+  return `<div class="fiche ${mode==='cote'?'cote':''}">
+    <div class="bandeau">
+      <div>
+        <h2>${esc(c.nom)}</h2>
+        <div class="sous">${esc(c.secteur)} · compte de ${esc(prenom(c.a))} · ${k.total} contacts dans Jarvi · ${voyant(c)}</div>
+      </div>
+      ${mode!=='cote' ? '<button type="button" class="fermer" data-fermer aria-label="Fermer">×</button>' : ''}
+    </div>
+    <div class="suivi">
+      <div><b>${k.opJoints}<small style="font-size:12px;color:var(--muted)">/${k.op}</small></b><span>opérationnels joints</span></div>
+      <div><b>${d ? jours(d)+' j' : '—'}</b><span>depuis le dernier appel</span></div>
+      <div><b>${c.appels.length}</b><span>appels au total</span></div>
+    </div>
+    <div class="etat"><div class="titre">Où on en est</div><p>${esc(c.etat)}</p></div>
+    <div class="afaire-bloc"><div class="titre">À faire</div>
+      ${afaire.length ? `<ul>${afaire.join('')}</ul>` : '<p style="margin:0;font-size:12.5px;color:var(--muted)">Rien en attente.</p>'}
+    </div>
+    <div class="section">
+      <h3>Les contacts <span class="aide">clique un nom pour ne voir que ses appels</span></h3>
+      ${c.contacts.map(x => `<div class="contact${x.d?'':' jamais'}" role="button" tabindex="0" data-contact="${esc(x.n)}" aria-pressed="${contactFiltre===x.n}">
+        <span class="qui"><b>${esc(x.n)}</b>${x.op?'<span class="ope">OP</span>':''}<em>${esc(x.f)}</em></span>
+        <span>${pastille(x.s)}</span>
+        <span class="quand">${x.d ? dateFr(x.d) : 'jamais appelé'}</span>
+      </div>`).join('')}
+      <h3>Le fil des appels ${contactFiltre ? `<span class="aide">${esc(contactFiltre)} · <a href="#" data-tous style="color:var(--accent-ink)">tout voir</a></span>` : `<span class="aide">${c.appels.length} appel${c.appels.length>1?'s':''}</span>`}</h3>
+      ${appels.length ? appels.map(a => `<div class="appel">
+        <div class="tete"><b>${esc(a.n)}</b> ${dateFr(a.d)} ${a.h} · ${esc(a.par)} ${pastille(a.s)}</div>
+        <p>${esc(a.r)}</p>
+        ${a.e ? `<div class="suite">${esc(a.e)}</div>` : ''}
+        <div class="liens"><a href="#" onclick="return false">Écouter</a><a href="#" onclick="return false">Fiche Jarvi</a></div>
+      </div>`).join('') : '<p style="font-size:12.5px;color:var(--muted)">Aucun appel pour ce contact.</p>'}
+    </div>
+  </div>`;
+}
+
+function rendreA(){
+  const v = visibles();
+  app.innerHTML = chiffres() + outils(true) + `<div class="cartes">${v.map(c => {
+    const k = couv(c), e = etatCouv(c), d = dernier(c), p = prochaine(c);
+    const pct = k.op ? Math.round(k.opJoints / k.op * 100) : 0;
+    return `<button type="button" class="carte ${e}" style="--p:${pct}%" data-ouvrir="${esc(c.nom)}">
+      <div class="bande"></div>
+      <div class="corps">
+        <div class="haut"><h3>${esc(c.nom)}</h3><span class="qui">${esc(prenom(c.a))}</span></div>
+        <div class="ligne1">${voyant(c)}<span style="color:var(--muted)">·</span><span>${esc(c.secteur)}</span></div>
+        <div class="contacts">
+          <div class="grand">${k.opRestants.length}<small> ${k.opRestants.length>1?'opérationnels':'opérationnel'} à appeler</small></div>
+          <div style="margin-top:6px">${points(c)} &nbsp;<b>${k.joints}</b>/${k.total} contacts joints</div>
+        </div>
+        ${p ? `<div class="action">${esc(p)}</div>` : ''}
+        <div class="pied"><span>${d ? `Dernier appel ${dateFr(d)} · il y a ${jours(d)} j` : 'Aucun appel passé'}</span>${pastille(sitChaude(c))}</div>
+      </div>
+    </button>`;}).join('')}
+    ${v.length ? '' : '<div class="vide">Aucun compte ne correspond.</div>'}</div>`;
+}
+
+function rendreB(){
+  const v = visibles();
+  if (!choisi || !v.some(c => c.nom === choisi)) choisi = v[0]?.nom || null;
+  const c = COMPTES.find(x => x.nom === choisi);
+  const th = (k,l) => `<th><button type="button" data-tri="${k}" ${tri===k?'aria-sort="descending"':''}>${l}</button></th>`;
+  app.innerHTML = chiffres() + outils(false) + `<div class="grille">
+    <div class="bloc"><div class="tabwrap"><table class="reg">
+      <thead><tr>${th('nom','Compte')}${th('prospecteur','Prospecteur')}${th('afaire','Opérationnels')}<th>Situation</th>${th('dernier','Dernier appel')}</tr></thead>
+      <tbody>${v.map(x => { const k = couv(x), d = dernier(x); return `<tr class="rangee" data-choisir="${esc(x.nom)}" aria-selected="${x.nom===choisi}" tabindex="0">
+        <td><span class="nom">${esc(x.nom)}</span><span class="sous">${esc(x.secteur)} · ${k.total} contacts</span></td>
+        <td>${esc(prenom(x.a))}</td>
+        <td>${points(x)}<br><span class="sous"><span class="n">${k.opJoints}/${k.op}</span> joints${k.opRestants.length?` · <span style="color:var(--crit)">${k.opRestants.length} à appeler</span>`:''}</span></td>
+        <td>${pastille(sitChaude(x)) || '<span class="sous">—</span>'}</td>
+        <td>${d ? `${dateFr(d)}<span class="depuis">il y a ${jours(d)} j</span>` : '<span style="color:var(--crit)">jamais</span>'}</td>
+      </tr>`;}).join('')}
+      ${v.length ? '' : '<tr><td colspan="5" class="vide">Aucun compte ne correspond.</td></tr>'}</tbody>
+    </table></div></div>
+    ${fiche(c,'cote')}
+  </div>`;
+}
+
+function rendreC(){
+  const base = visibles();
+  app.innerHTML = chiffres() + outils(false).replace(/<span class="etiq">Comptes de<\/span>[\s\S]*?<span class="sep"><\/span>/, '<span class="sep"></span>') +
+  `<div class="colonnes">${PROSPECTEURS.filter(p => filtre==='tous' || filtre===p).map(p => {
+    const mes = base.filter(c => c.a === p);
+    const encours = mes.filter(c => etatCouv(c) !== 'complet');
+    const complets = mes.filter(c => etatCouv(c) === 'complet');
+    const opTot = mes.reduce((n,c)=>n+couv(c).op,0), opJ = mes.reduce((n,c)=>n+couv(c).opJoints,0);
+    const reste = opTot - opJ;
+    return `<section class="colonne">
+      <header>
+        <div class="nomp"><span class="avatar">${p.split(' ').map(s=>s[0]).join('')}</span><h3>${esc(prenom(p))}</h3><span style="font-size:12px;color:var(--muted)">· ${mes.length} comptes</span></div>
+        <div class="reste ${reste?'':'ok'}"><b>${reste}</b>${reste ? `opérationnel${reste>1?'s':''} encore à appeler` : 'tout le monde a été joint'}</div>
+        <div class="barre"><i style="width:${opTot?Math.round(opJ/opTot*100):0}%"></i></div>
+      </header>
+      ${encours.map(c => tuile(c)).join('')}
+      ${encours.length ? '' : '<div class="vide" style="padding:18px">Rien à faire sur ces comptes.</div>'}
+      ${complets.length ? `<details><summary>${complets.length} compte${complets.length>1?'s':''} complet${complets.length>1?'s':''}</summary>${complets.map(c => tuile(c)).join('')}</details>` : ''}
+    </section>`;}).join('')}</div>`;
+}
+function tuile(c){
+  const k = couv(c), d = dernier(c), e = etatCouv(c), p = prochaine(c);
+  return `<button type="button" class="tuile ${e}" data-ouvrir="${esc(c.nom)}">
+    <div class="t1"><span class="nom">${esc(c.nom)}</span><span class="depuis">${d ? `il y a ${jours(d)} j` : 'jamais appelé'}</span></div>
+    <div class="t2">${points(c)} <span>${k.opJoints}/${k.op} opérationnels</span> ${pastille(sitChaude(c))}</div>
+    ${e==='complet' ? '<div class="afaire">✓ Tous les opérationnels joints</div>' : (p ? `<div class="afaire">→ ${esc(p)}</div>` : '')}
+  </button>`;
+}
+
+function rendre(){
+  document.getElementById('desc').textContent = DESC[prop];
+  document.querySelectorAll('#selecteur [data-prop]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.prop === prop)));
+  ({A:rendreA, B:rendreB, C:rendreC})[prop]();
+  rendreSurcouche();
+}
+function rendreSurcouche(){
+  if (prop === 'B' || !choisi) { surcouche.innerHTML = ''; return; }
+  const c = COMPTES.find(x => x.nom === choisi);
+  surcouche.innerHTML = prop === 'A'
+    ? `<div class="voile" data-voile>${fiche(c,'modal')}</div>`
+    : `<div class="tiroir-voile" data-voile></div><div class="tiroir">${fiche(c,'tiroir')}</div>`;
+}
+
+/* ---------- Événements (délégation) ---------- */
+document.addEventListener('click', ev => {
+  const t = ev.target.closest('[data-prop],[data-filtre],[data-vue],[data-tri],[data-ouvrir],[data-choisir],[data-fermer],[data-voile],[data-contact],[data-tous]');
+  if (!t) return;
+  if (t.dataset.prop) { prop = t.dataset.prop; if (prop !== 'B') choisi = null; contactFiltre = null; return rendre(); }
+  if (t.dataset.filtre) { filtre = t.dataset.filtre; return rendre(); }
+  if (t.dataset.vue) { vue = vue === t.dataset.vue ? 'tous' : t.dataset.vue; return rendre(); }
+  if (t.dataset.tri) { tri = t.dataset.tri; return rendre(); }
+  if (t.dataset.ouvrir) { choisi = t.dataset.ouvrir; contactFiltre = null; return rendreSurcouche(); }
+  if (t.dataset.choisir) { choisi = t.dataset.choisir; contactFiltre = null; return rendre(); }
+  if (t.hasAttribute('data-fermer') || (t.hasAttribute('data-voile') && ev.target === t)) { choisi = prop === 'B' ? choisi : null; contactFiltre = null; return prop === 'B' ? rendre() : rendreSurcouche(); }
+  if (t.dataset.contact) { contactFiltre = contactFiltre === t.dataset.contact ? null : t.dataset.contact; return prop === 'B' ? rendre() : rendreSurcouche(); }
+  if (t.hasAttribute('data-tous')) { ev.preventDefault(); contactFiltre = null; return prop === 'B' ? rendre() : rendreSurcouche(); }
+});
+document.addEventListener('input', ev => {
+  if (ev.target.id === 'rech') { recherche = ev.target.value; const pos = ev.target.selectionStart; rendre(); const i = document.getElementById('rech'); i.focus(); i.setSelectionRange(pos,pos); }
+});
+document.addEventListener('change', ev => { if (ev.target.id === 'tri') { tri = ev.target.value; rendre(); } });
+document.addEventListener('keydown', ev => {
+  if (ev.key === 'Escape' && prop !== 'B' && choisi) { choisi = null; rendreSurcouche(); }
+  if (ev.key === 'Enter' && ev.target.matches('[data-choisir],[data-contact]')) ev.target.click();
+});
+
+rendre();
+</script>
