@@ -4,7 +4,7 @@
 
 import { jourParis, versISO } from "../_shared/dates.ts";
 import { numeroExterneOuDefaut, sensRingover } from "../_shared/phone.ts";
-import { SEUIL_CONVERSATION_S } from "../_shared/classement.ts";
+import { SEUIL_CONVERSATION_S, SEUIL_TENTATIVE_S } from "../_shared/classement.ts";
 
 export type Enveloppe = {
   event: string;
@@ -74,7 +74,11 @@ export function issueAutomatique(
 ): Issue {
   if (tagRdv(tags)) return "rdv";
   if (statut !== "answered") return "tentative";
-  return (dureeS ?? 0) >= 60 ? "conversation" : "court";
+  const duree = dureeS ?? 0;
+  // Moins de vingt secondes : personne n'a parlé. C'est une tentative, pas une
+  // question à poser à l'équipe.
+  if (duree < SEUIL_TENTATIVE_S) return "tentative";
+  return duree >= SEUIL_CONVERSATION_S ? "conversation" : "court";
 }
 
 // Ringover annonce lui-même s'il a reconnu un répondeur
@@ -199,10 +203,12 @@ export function construirePlan(enveloppe: Enveloppe, horodatageMs: number): Plan
       };
       if (typeof data.record === "string" && data.record) modification.record_link = data.record;
       if (issue === "rdv") modification.situation = "rdv";
-      // Un appel décroché de moins d'une minute doit être tranché à la main
-      // (bâché ? vraie conversation ?) — SPECS §1.1.4. Les appels internes et
-      // anonymes sortent du rapport : on ne les met pas dans la file, ils n'y
-      // ont pas leur place. Le classement Jarvi qui suit lèvera la demande de
+      // Un appel décroché entre vingt secondes et une minute doit être tranché
+      // à la main (bâché ? vraie conversation ?) — SPECS §1.1.4. En dessous de
+      // vingt secondes, `issueAutomatique` a déjà conclu « tentative » : il n'y
+      // a rien à écouter, donc rien à demander. Les appels internes et anonymes
+      // sortent du rapport : on ne les met pas dans la file, ils n'y ont pas
+      // leur place. Le classement Jarvi qui suit lèvera la demande de
       // qualification si le numéro n'est pas un contact.
       if (issue === "court" && !booleen(data.is_internal) && !booleen(data.is_anonymous)) {
         modification.needs_review = true;

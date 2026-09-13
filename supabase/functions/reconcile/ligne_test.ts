@@ -65,6 +65,14 @@ Deno.test("appel court : mis en file à qualifier, comme par le webhook", () => 
   estEgal(ligne.review_reason, "court");
 });
 
+// Même règle que le webhook, et c'est tout l'enjeu : un appel ne doit pas
+// changer de sort selon qu'il est arrivé par webhook ou par rattrapage.
+Deno.test("appel de six secondes : tentative, jamais mis en file", () => {
+  const ligne = ligneAppel({ ...APPEL_TYPE, incall_duration: 6, total_duration: 6 })!;
+  estEgal(ligne.outcome, "tentative");
+  estEgal(ligne.needs_review, undefined, "rien à écouter, donc rien à demander");
+});
+
 Deno.test("répondeur détecté : messagerie, hors entonnoir, sans question posée", () => {
   const ligne = ligneAppel({ ...APPEL_TYPE, amd: true, incall_duration: 22 })!;
   estEgal(ligne.status, "voicemail");

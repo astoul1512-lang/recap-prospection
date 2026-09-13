@@ -31,6 +31,16 @@ export type Genre = "prospection" | "hors_prospection" | "inconnu";
 // décision de classement — d'où sa place ici, en un seul exemplaire.
 export const SEUIL_CONVERSATION_S = 60;
 
+// Vingt secondes : en dessous, il n'y a pas de parole. Rien à transcrire, donc
+// rien que la routine puisse résumer ; rien à écouter, donc rien qu'un humain
+// puisse trancher. Ces appels sont des tentatives — un numéro composé — et
+// n'ont aucune raison d'occuper la file « À qualifier ».
+//
+// C'est le même seuil que celui de `v_a_resumer` (docs/decisions.md, D6), et
+// ce n'est pas une coïncidence : les deux doivent rester d'accord, sinon une
+// tranche d'appels tombe entre les deux et n'est traitée par personne.
+export const SEUIL_TENTATIVE_S = 20;
+
 export type Classement = {
   kind: Genre;
   champs: Record<string, unknown>;

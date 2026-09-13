@@ -151,9 +151,12 @@ trancher, un appel qui revient à chaque passage.
 ## Les quatre règles à ne pas contourner
 
 1. **Interroger « ce qui manque », pas « ce qui date d'hier ».** La fenêtre de
-   sept jours de `v_a_resumer` fait qu'une journée manquée est rattrapée le
-   lendemain, et qu'une panne de trois jours se répare sans intervention. Ne
-   jamais remplacer ce critère par une date.
+   quatorze jours de `v_a_resumer` fait qu'une journée manquée est rattrapée le
+   lendemain, et qu'une panne d'une semaine se répare sans intervention. Ne
+   jamais remplacer ce critère par une date. (Elle est passée de sept à
+   quatorze jours le 13 septembre 2026 : un numéro requalifié en prospection
+   trois jours après l'appel doit avoir le temps d'obtenir sa transcription
+   puis son résumé — voir `docs/decisions.md` D10.)
 2. **Ne jamais écraser une correction humaine.** La vue les exclut déjà ; ne
    pas la court-circuiter.
 3. **Ne traiter que ce qui a une transcription.** La vue s'en charge. Sans

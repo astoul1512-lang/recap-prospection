@@ -13,6 +13,7 @@ import { log, logErreur } from "../_shared/log.ts";
 import { reponse, servir } from "../_shared/http.ts";
 import {
   appelsAClasser,
+  appelsARevoirJarvi,
   appelsParIdentifiants,
   compterRevisitesJarvi,
   configurationPresente,
@@ -71,6 +72,40 @@ servir(async (req: Request): Promise<Response> => {
       ms: Date.now() - debut,
     });
     return reponse(200, { classes: tranches, restants: resultats.length - tranches });
+  }
+
+  // --- Revérification planifiée des numéros inconnus -------------------------
+  //
+  // Un numéro absent de Jarvi au moment de l'appel est souvent un contact créé
+  // le soir même. Sans ce passage, l'appel resterait `inconnu` pour toujours :
+  // `mode=batch` ne relit que `a_classer`. On repasse 24 h puis 72 h après
+  // l'appel ; au second essai infructueux, l'appel sort du rapport.
+  if (mode === "revoir") {
+    if (!(await jetonCronValide(jetonCron))) {
+      log({ fn: FN, etape: "refus", motif: "jeton_tache_invalide" });
+      return reponse(401);
+    }
+    const bruts = await appelsARevoirJarvi(LOT_MAX);
+    // `force` : le cache Jarvi vaut trente jours, il dirait exactement ce qu'il
+    // disait hier. Toute la valeur de ce passage est de redemander pour de bon.
+    const resultats = await classerAppels(bruts, { force: true, origine: "revoir" });
+    const retrouves = resultats.filter((r) => r.kind !== null && r.kind !== "inconnu").length;
+    // Rapproché par identifiant, pas par position : `classerAppels` saute les
+    // lignes illisibles, et un décalage d'indice ferait mentir le journal.
+    const derniersEssais = new Set(
+      bruts.filter((b) => b.passage === 2).map((b) => String(b.call_id)),
+    );
+    const ecartes =
+      resultats.filter((r) => r.kind === "inconnu" && derniersEssais.has(r.call_id)).length;
+    log({
+      fn: FN,
+      etape: "revoir",
+      candidats: bruts.length,
+      retrouves,
+      ecartes,
+      ms: Date.now() - debut,
+    });
+    return reponse(200, { revus: resultats.length, retrouves, ecartes });
   }
 
   // --- Revérification demandée par un membre ---------------------------------

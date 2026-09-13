@@ -454,3 +454,79 @@ tout de suite au lieu d'attendre une manipulation.
 Une société sans responsable dans Jarvi n'apparaît nulle part. Adrien a
 confirmé que les comptes qui l'intéressent en ont tous un ; si un compte
 manquait à l'appel, c'est la première chose à regarder.
+
+---
+
+## D10 — Plus rien n'attend un humain sans raison
+
+**Décidé le 13 septembre 2026, par Adrien.**
+
+### La règle
+
+Un appel remonte dans le rapport seulement s'il y a eu un échange **et** que le
+numéro est dans la partie CRM de Jarvi. Sinon il est hors rapport.
+
+La routine du soir l'appliquait déjà. Tant qu'elle était seule à le faire, la
+file « À qualifier » dépendait d'une tâche Claude : le soir où elle ne tourne
+pas, la file se remplit d'appels que personne n'aurait dû voir — et une file
+qu'on ouvre pour n'y rien trouver à décider est une file qu'on cesse d'ouvrir.
+La règle est donc portée dans la base et dans les fonctions.
+
+### Les trois changements
+
+**1. Le seuil descend de 60 à 20 secondes.** Tout appel décroché de moins d'une
+minute partait dans la file : « bâché, ou vraie conversation ? ». La question a
+du sens à quarante secondes. Elle n'en a aucune à six — il n'y a rien à
+écouter. Ces appels deviennent des `tentative`, ce qu'ils sont : un numéro
+composé.
+
+Vingt secondes, et pas un autre chiffre, parce que c'est déjà le seuil de
+`v_a_resumer` (D6). Au-dessus, la routine sait faire ; en dessous, il n'y a pas
+de matière. Deux seuils différents auraient laissé une tranche d'appels entre
+les deux, traitée par personne.
+
+**2. Les numéros inconnus sont revérifiés tout seuls, 24 h puis 72 h après
+l'appel.** Un numéro absent de Jarvi au moment de l'appel est souvent un
+contact que le collaborateur crée le soir même. Or `classify?mode=batch` ne
+relit que `kind = 'a_classer'` : un appel passé à `inconnu` n'était plus jamais
+rouvert. Il attendait un humain qui n'avait rien à décider.
+
+Deux repassages, puis l'appel sort du rapport avec son motif — visible sur
+l'écran « Écartés du rapport », réintégrable d'un clic. Retrouvé côté CRM il
+redevient de la prospection et la chaîne transcription → routine reprend ;
+retrouvé côté ATS, c'est un candidat, il sort.
+
+La vue `v_a_revoir_jarvi` dit « qui est dû » en comparant la date de dernière
+vérification à l'échéance, plutôt qu'en tenant un compteur de passages. Un
+appel vérifié après son échéance sort de la vue de lui-même : rien à
+incrémenter, rien à désynchroniser.
+
+**3. La fenêtre de récupération des transcriptions passe de 7 à 14 jours.**
+Conséquence directe du point 2 : un numéro requalifié trois jours après l'appel
+doit encore avoir le temps d'obtenir sa transcription, puis son résumé le soir.
+`v_a_resumer` bouge avec `v_sans_transcription` — élargir la récupération sans
+élargir le plan de travail de la routine rapatrierait des textes que plus rien
+ne résume.
+
+### Ce qui a été réparé au passage
+
+Les résumés rédigés avant le 5 septembre reposaient sur des transcriptions aux
+locuteurs inversés (D8). Les transcriptions ont été remises à l'endroit ce
+jour-là, pas les résumés : ils racontent toujours l'échange à l'envers. Ils
+sont effacés pour que la routine les réécrive — après archivage dans
+`private.resumes_avant_correction`, hors de portée de l'application. On ne
+détruit pas du travail réel pour réparer une erreur de code, même quand on est
+sûr de soi.
+
+### Ce que ça coûte
+
+Un appel utile de quinze secondes — un « rappelez-moi lundi » — ne sera plus
+proposé à la qualification. Le compromis est le même que pour D5 : mieux vaut
+une file courte et crédible qu'une file exhaustive que personne n'ouvre. La
+correction manuelle reste possible sur la fiche appel.
+
+Et la revérification automatique redemande à Jarvi des numéros qu'il ne connaît
+pas — deux requêtes de plus par appel inconnu, au plus. Le cache de trente
+jours est volontairement court-circuité sur ces passages : il répondrait
+exactement ce qu'il répondait hier, et c'est précisément ce qu'on cherche à ne
+pas croire.

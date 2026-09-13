@@ -274,11 +274,16 @@ Dernier jour ouvré (lundi → vendredi) : entonnoir, 3 à 5 signaux chauds (sit
 
 ```
 status ∈ {missed, voicemail, ringing, ended sans answered} → tentative
-answered et duration_s < 60                                → court  (+ needs_review, review_reason = court, si prospection)
+answered et duration_s < 20                                → tentative (jamais dans « À qualifier »)
+answered et 20 ≤ duration_s < 60                           → court  (+ needs_review, review_reason = court, si prospection)
 answered et duration_s ≥ 60                                → conversation
 tag Ringover « RDV » ou situation rdv                      → rdv
 ```
 `bache` n'est jamais posé automatiquement (correction humaine ou Claude via situation `bache`).
+
+Le seuil bas de vingt secondes est le même que celui de `v_a_resumer` : en
+dessous, il n'y a pas de parole — donc rien à transcrire, rien à résumer, et
+rien à écouter pour trancher. Voir `docs/decisions.md` D10.
 
 ---
 

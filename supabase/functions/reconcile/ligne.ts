@@ -14,7 +14,7 @@ import {
   identifiant,
   type AppelRingover,
 } from "../_shared/ringover.ts";
-import { SEUIL_CONVERSATION_S } from "../_shared/classement.ts";
+import { SEUIL_CONVERSATION_S, SEUIL_TENTATIVE_S } from "../_shared/classement.ts";
 
 export function etiquettes(appel: AppelRingover): string[] {
   if (!Array.isArray(appel.tags)) return [];
@@ -81,6 +81,10 @@ export function ligneAppel(
   let issue: string;
   if (rdv(tags)) issue = "rdv";
   else if (etat !== "answered") issue = "tentative";
+  // Moins de vingt secondes : pas de parole, donc pas de question à poser —
+  // même règle que dans le webhook, sans quoi un appel changerait de sort selon
+  // le chemin par lequel il est arrivé.
+  else if (duree < SEUIL_TENTATIVE_S) issue = "tentative";
   else issue = duree >= SEUIL_CONVERSATION_S ? "conversation" : "court";
 
   const anonyme = estAnonyme(appel);

@@ -54,6 +54,29 @@ export function lireAppel(brut: Record<string, unknown>): AppelAClasser | null {
   };
 }
 
+// Dernier passage de revérification (`passage = 2`, soit 72 h après l'appel) :
+// si Jarvi ne connaît toujours pas le numéro, il ne le connaîtra pas. L'appel
+// sort du rapport avec son motif plutôt que d'attendre indéfiniment un humain
+// qui n'a rien à décider. Il reste visible sur l'écran « Écartés du rapport »,
+// et un administrateur le réintègre d'un clic.
+//
+// Les autres issues du classement ne sont pas concernées : un numéro retrouvé
+// côté CRM redevient de la prospection, côté ATS il devient hors prospection —
+// `classer()` s'en charge déjà, et la chaîne transcription puis routine
+// reprend son cours normalement.
+function ecarterSiToujoursInconnu(
+  brut: Record<string, unknown>,
+  kind: Genre,
+): Record<string, unknown> {
+  if (kind !== "inconnu" || brut.passage !== 2) return {};
+  return {
+    hors_rapport: true,
+    hors_rapport_motif: "numéro inconnu",
+    needs_review: false,
+    review_reason: null,
+  };
+}
+
 type Consultation = { profil: ProfilJarvi | null; trouve: boolean } | null;
 
 // Une seule recherche par numéro et par exécution : un même prospect est
@@ -121,6 +144,7 @@ export async function classerAppels(
     const compte = typeof brut.jarvi_check_count === "number" ? brut.jarvi_check_count : 0;
     await modifierAppel(appel.call_id, {
       ...decision.champs,
+      ...ecarterSiToujoursInconnu(brut, decision.kind),
       jarvi_checked_at: new Date().toISOString(),
       jarvi_check_count: compte + 1,
     }, null);

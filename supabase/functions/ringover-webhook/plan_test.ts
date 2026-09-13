@@ -222,11 +222,37 @@ Deno.test("issue automatique : la règle de SPECS §5.7, cas par cas", () => {
   estEgal(issueAutomatique("missed", null, []), "tentative");
   estEgal(issueAutomatique("voicemail", 20, []), "tentative");
   estEgal(issueAutomatique("ended", 0, []), "tentative");
+  estEgal(issueAutomatique("answered", 6, []), "tentative", "sous vingt secondes, personne n'a parlé");
+  estEgal(issueAutomatique("answered", 19, []), "tentative", "la limite basse est à 20 secondes");
+  estEgal(issueAutomatique("answered", 20, []), "court", "à vingt secondes, il y a de quoi écouter");
   estEgal(issueAutomatique("answered", 59, []), "court", "la limite est à 60 secondes");
   estEgal(issueAutomatique("answered", 60, []), "conversation");
   estEgal(issueAutomatique("answered", 3600, []), "conversation");
   estEgal(issueAutomatique("answered", 12, ["RDV"]), "rdv", "le tag prime sur la durée");
   estEgal(issueAutomatique("missed", null, ["RDV"]), "rdv");
+});
+
+// Le défaut que ce test surveille : un appel de six secondes qui repart dans
+// « À qualifier ». C'est le cas le plus fréquent de la prospection — un
+// décroché immédiat, un raccrochage — et c'est lui qui remplissait la file.
+Deno.test("appel décroché de six secondes : tentative, et personne n'est dérangé", () => {
+  const plan = construirePlan(
+    enveloppe("hangup", {
+      call_id: "c-020",
+      direction: "outbound",
+      from_number: "+33123456789",
+      to_number: "0612345678",
+      answered_time: DEBUT_S + 2,
+      hangup_time: DEBUT_S + 8,
+      duration_in_seconds: 6,
+      ...COLLABORATEUR,
+    }),
+    HORODATAGE_MS,
+  );
+  estEgal(plan.modification?.status, "answered", "l'appel a bien été décroché");
+  estEgal(plan.modification?.outcome, "tentative");
+  estEgal(plan.modification?.needs_review, undefined, "rien à écouter, donc rien à demander");
+  estEgal(plan.modification?.review_reason, undefined);
 });
 
 Deno.test("durée : acceptée sous les différents noms possibles de l'API", () => {

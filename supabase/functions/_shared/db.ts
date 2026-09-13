@@ -151,6 +151,17 @@ export async function appelsAClasser(limite: number): Promise<Record<string, unk
   return (await corpsJson(r)) as Record<string, unknown>[];
 }
 
+// Les appels dont le numéro était inconnu de Jarvi et dont la revérification
+// est due. Le « qui est dû » vient de la vue, pas d'un filtre recopié ici :
+// l'échéance (24 h puis 72 h) vit à un seul endroit, avec son commentaire.
+export async function appelsARevoirJarvi(limite: number): Promise<Record<string, unknown>[]> {
+  const r = await rest(
+    `v_a_revoir_jarvi?select=${CHAMPS_CLASSEMENT},passage&order=started_at.desc&limit=${limite}`,
+  );
+  if (!r.ok) return [];
+  return (await corpsJson(r)) as Record<string, unknown>[];
+}
+
 export async function appelsParIdentifiants(ids: string[]): Promise<Record<string, unknown>[]> {
   if (!ids.length) return [];
   const liste = ids.map((i) => `"${i.replace(/"/g, "")}"`).join(",");
