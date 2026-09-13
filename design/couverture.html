@@ -1,0 +1,557 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>*{box-sizing:border-box}body{margin:0;font:14px/1.5 system-ui,sans-serif}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>Couverture des comptes</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600&family=Instrument+Sans:wght@400;500;600&display=swap">
+<style>
+:root{
+  color-scheme:light;
+  --ground:#f6f3ec; --surface:#fbf9f4; --surface-2:#ece7db; --surface-3:#f1ede4;
+  --hair:#d9d3c6; --hair-2:#cfc8b9;
+  --ink:#1e1b16; --ink-2:#5a554b; --muted:#8a8377;
+  --accent:#2f5d50; --accent-ink:#244a40; --accent-soft:#dcefe3; --accent-soft-2:#eef4ef;
+  --warn:#8a5a00; --warn-soft:#fff1cf; --crit:#8f3f1c; --crit-soft:#f6e3da;
+  --good:#1f5a3a; --good-soft:#dcefe3;
+  --bar:#2f5d50; --bar-2:#a8c9bb; --bar-vide:#e2ddd1;
+  --shadow:0 12px 32px -20px rgba(30,27,22,.45);
+  --font-ui:"Instrument Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --font-display:"Newsreader",Georgia,serif;
+  --radius:6px; --radius-lg:8px;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --ground:#16140f; --surface:#1e1b15; --surface-2:#2a261e; --surface-3:#231f18;
+    --hair:#332e25; --hair-2:#453f34;
+    --ink:#efeae0; --ink-2:#bdb6a8; --muted:#8a8377;
+    --accent:#6fb59f; --accent-ink:#8fcbb7; --accent-soft:#1f3a32; --accent-soft-2:#1b2b26;
+    --warn:#e2b45a; --warn-soft:#3a2c0f; --crit:#f0987a; --crit-soft:#3f2318;
+    --good:#7fcb9d; --good-soft:#1f3a2b;
+    --bar:#6fb59f; --bar-2:#33544a; --bar-vide:#2c281f;
+    --shadow:0 12px 32px -20px rgba(0,0,0,.8);
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --ground:#16140f; --surface:#1e1b15; --surface-2:#2a261e; --surface-3:#231f18;
+  --hair:#332e25; --hair-2:#453f34;
+  --ink:#efeae0; --ink-2:#bdb6a8; --muted:#8a8377;
+  --accent:#6fb59f; --accent-ink:#8fcbb7; --accent-soft:#1f3a32; --accent-soft-2:#1b2b26;
+  --warn:#e2b45a; --warn-soft:#3a2c0f; --crit:#f0987a; --crit-soft:#3f2318;
+  --good:#7fcb9d; --good-soft:#1f3a2b;
+  --bar:#6fb59f; --bar-2:#33544a; --bar-vide:#2c281f;
+  --shadow:0 12px 32px -20px rgba(0,0,0,.8);
+}
+
+*{box-sizing:border-box}
+body{background:var(--ground);color:var(--ink);font-family:var(--font-ui);font-size:14px;line-height:1.5}
+h1,h2,h3{font-family:var(--font-display);font-weight:500;margin:0;text-wrap:balance}
+button{font:inherit;color:inherit}
+button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.enveloppe{max-width:1280px;margin:0 auto;padding:18px 20px 64px}
+
+.entete{display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;gap:10px 18px;padding-bottom:12px;border-bottom:1px solid var(--hair)}
+.entete h1{font-size:28px;letter-spacing:-.01em}
+.entete .qui{font-size:12px;color:var(--muted)}
+.nav{display:flex;flex-wrap:wrap;gap:6px;margin:12px 0 18px}
+.nav button{font-size:12.5px;padding:5px 12px;border:1px solid var(--hair);background:var(--surface);color:var(--ink-2);border-radius:999px;cursor:pointer}
+.nav button[aria-current="page"]{background:var(--accent);border-color:var(--accent);color:var(--ground)}
+.nav button.off{opacity:.5;cursor:default}
+
+.outils{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-bottom:16px}
+.outils .etiq{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+.pil{font-size:12.5px;padding:5px 12px;border:1px solid var(--hair);background:transparent;color:var(--ink-2);border-radius:999px;cursor:pointer}
+.pil[aria-pressed="true"]{background:var(--accent-soft);border-color:var(--accent);color:var(--accent-ink);font-weight:500}
+.outils input[type=search]{font:inherit;font-size:13px;padding:6px 10px;border:1px solid var(--hair);border-radius:var(--radius);background:var(--surface);color:var(--ink);min-width:190px}
+.outils .sep{flex:1}
+
+.chiffres{display:grid;grid-template-columns:repeat(auto-fit,minmax(148px,1fr));border:1px solid var(--hair);border-radius:var(--radius-lg);background:var(--surface);overflow:hidden;margin-bottom:18px}
+.chiffre{padding:12px 14px;border:0;border-right:1px solid var(--hair);text-align:left;background:transparent;cursor:pointer}
+.chiffre:last-child{border-right:0}
+.chiffre b{display:block;font-family:var(--font-display);font-size:26px;font-weight:500;font-variant-numeric:tabular-nums;line-height:1.15}
+.chiffre span{font-size:11.5px;color:var(--muted);display:block;margin-top:2px}
+.chiffre.alerte b{color:var(--crit)}
+.chiffre.tiede b{color:var(--warn)}
+.chiffre.bien b{color:var(--good)}
+.chiffre[aria-pressed="true"]{background:var(--accent-soft-2);box-shadow:inset 0 -3px 0 var(--accent)}
+
+.grille{display:grid;grid-template-columns:minmax(0,1fr);gap:20px;align-items:start}
+.grille.ouvert{grid-template-columns:minmax(0,1.15fr) minmax(340px,.85fr)}
+@media (max-width:980px){.grille.ouvert{grid-template-columns:1fr}}
+
+.bloc{border:1px solid var(--hair);border-radius:var(--radius-lg);background:var(--surface);overflow:hidden}
+.tabwrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{font-size:10.5px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:600;text-align:left;padding:9px 12px;background:var(--surface-3);border-bottom:1px solid var(--hair);white-space:nowrap}
+th button{background:none;border:0;padding:0;font:inherit;color:inherit;cursor:pointer;text-transform:inherit;letter-spacing:inherit}
+th button[aria-sort]::after{content:" ↓";color:var(--accent)}
+td{padding:10px 12px;border-bottom:1px solid var(--hair);vertical-align:middle;font-variant-numeric:tabular-nums}
+tr:last-child td{border-bottom:0}
+tr.rangee{cursor:pointer}
+tr.rangee:hover td{background:var(--surface-3)}
+tr.rangee[aria-selected="true"] td{background:var(--accent-soft-2)}
+tr.rangee[aria-selected="true"] td:first-child{box-shadow:inset 3px 0 0 var(--accent)}
+.nom{font-family:var(--font-display);font-size:16px;display:block;line-height:1.2}
+.sous{font-size:11px;color:var(--muted)}
+
+.jauge{display:block;width:104px;height:5px;border-radius:3px;background:var(--bar-vide);overflow:hidden;margin-bottom:4px}
+.jauge i{display:block;height:100%;background:var(--bar)}
+.jauge.vide i{background:var(--crit)}
+
+.quand{white-space:nowrap}
+.quand b{font-weight:600}
+.quand.jamais{color:var(--crit);font-weight:600}
+.quand.vieux{color:var(--warn);font-weight:600}
+.quand .par{display:block;font-size:11px;color:var(--muted);font-weight:400}
+
+.past{display:inline-block;font-size:11px;padding:2px 8px;border-radius:999px;white-space:nowrap;font-weight:500;line-height:1.5}
+.past.good{background:var(--good-soft);color:var(--good)}
+.past.acc{background:var(--accent-soft);color:var(--accent-ink)}
+.past.warn{background:var(--warn-soft);color:var(--warn)}
+.past.crit{background:var(--crit-soft);color:var(--crit)}
+.past.neu{background:var(--surface-2);color:var(--ink-2)}
+
+/* Fiche */
+.fiche{position:sticky;top:14px;max-height:calc(100vh - 28px);overflow:auto}
+.fiche .bandeau{padding:14px 16px 12px;border-bottom:1px solid var(--hair);display:flex;justify-content:space-between;gap:10px;align-items:flex-start;position:sticky;top:0;background:var(--surface);z-index:2}
+.fiche h2{font-size:22px;letter-spacing:-.01em;line-height:1.15}
+.fiche .sous2{font-size:12px;color:var(--muted);margin-top:3px}
+.fermer{border:1px solid var(--hair);background:var(--surface);border-radius:999px;width:30px;height:30px;cursor:pointer;flex:none;font-size:17px;line-height:1}
+.trois{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:12px 16px 0}
+.trois div{background:var(--surface-3);border:1px solid var(--hair);border-radius:var(--radius);padding:8px 10px}
+.trois b{display:block;font-family:var(--font-display);font-size:20px;font-weight:500;font-variant-numeric:tabular-nums;line-height:1.1}
+.trois b.crit{color:var(--crit)} .trois b.warn{color:var(--warn)}
+.trois span{font-size:10.5px;color:var(--muted)}
+.section{padding:0 16px 16px}
+.section h3{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-family:var(--font-ui);font-weight:600;margin:16px 0 8px;padding-top:14px;border-top:1px solid var(--hair);display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.section h3 .aide{font-weight:400;text-transform:none;letter-spacing:0}
+.rech-contacts{width:100%;font:inherit;font-size:12.5px;padding:6px 10px;border:1px solid var(--hair);border-radius:var(--radius);background:var(--surface-3);color:var(--ink);margin-bottom:8px}
+.groupe{font-size:11px;color:var(--muted);margin:10px 0 4px;font-weight:600}
+.contact{display:grid;grid-template-columns:1fr auto;gap:2px 10px;align-items:baseline;padding:7px 0;border-bottom:1px dotted var(--hair)}
+.contact:last-child{border-bottom:0}
+.contact b{font-weight:600;font-size:13px}
+.contact em{display:block;font-style:normal;font-size:11.5px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.contact .d{font-size:11.5px;color:var(--ink-2);white-space:nowrap;text-align:right;font-variant-numeric:tabular-nums}
+.contact .d small{display:block;font-size:10.5px;color:var(--muted)}
+.contact.jam .d{color:var(--crit)}
+.contact.autre .d{color:var(--warn)}
+.echange{grid-column:1/-1;margin-top:4px;padding-left:10px;border-left:2px solid var(--accent);font-size:12px;color:var(--ink-2)}
+.echange .past{margin-left:6px}
+.vide{padding:44px 18px;text-align:center;color:var(--muted);font-size:13px}
+.note{margin-top:20px;border:1px dashed var(--hair-2);border-radius:var(--radius-lg);padding:12px 14px;background:var(--surface-3)}
+.note h3{font-family:var(--font-ui);font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--warn);margin:0 0 6px}
+.note p{margin:0;font-size:12.5px;color:var(--ink-2)}
+@media (prefers-reduced-motion:no-preference){tr.rangee,.pil,.chiffre{transition:background .12s ease}}
+
+/* Situations + état des lieux + fil d'appels */
+.outils2{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:8px 0 0}
+.pil.sit{padding-left:8px}
+.pil .pt{display:inline-block;width:7px;height:7px;border-radius:999px;margin-right:6px;vertical-align:1px}
+.pil .cpt{color:var(--muted);font-variant-numeric:tabular-nums;margin-left:5px;font-size:11px}
+.pil[disabled]{opacity:.4;cursor:default}
+.pt.good{background:var(--good)} .pt.acc{background:var(--accent)} .pt.warn{background:var(--warn)}
+.pt.crit{background:var(--crit)} .pt.neu{background:var(--hair-2)}
+.etat{display:block;font-size:11.5px;color:var(--ink-2);margin-top:3px;max-width:44ch;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-style:italic}
+.oue{margin:12px 16px 0;background:var(--accent-soft-2);border:1px solid var(--hair);border-left:3px solid var(--accent);border-radius:var(--radius);padding:10px 12px}
+.oue p{margin:0;font-size:13px;line-height:1.5;color:var(--ink)}
+.oue .sig{display:block;margin-top:6px;font-size:10.5px;color:var(--muted)}
+.appels{grid-column:1/-1;margin:4px 0 2px;padding-left:10px;border-left:2px solid var(--hair-2)}
+.ap{padding:4px 0}
+.ap .tete{display:flex;flex-wrap:wrap;align-items:center;gap:6px;font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums}
+.ap p{margin:3px 0 0;font-size:12px;line-height:1.45;color:var(--ink-2)}
+.ap p.suite{color:var(--accent-ink);font-size:11.5px}
+.ap p.suite b{font-weight:600}
+.contact.ech .appels{border-left-color:var(--accent)}
+</style>
+</head>
+<body>
+<div class="enveloppe">
+  <div class="entete">
+    <h1>Récap prospection</h1>
+    <span class="qui">Adrien · vendredi 11 septembre</span>
+  </div>
+  <nav class="nav" aria-label="Vues">
+    <button type="button" class="off">Jour</button>
+    <button type="button" class="off">Semaine</button>
+    <button type="button" aria-current="page">Sociétés</button>
+    <button type="button" class="off">À qualifier</button>
+    <button type="button" class="off">Équipe</button>
+  </nav>
+
+  <div class="outils" id="outils"></div>
+  <div class="outils outils2" id="outils2"></div>
+  <div class="chiffres" id="chiffres"></div>
+  <div class="grille" id="grille"></div>
+
+  <div class="note">
+    <h3>Ce qu'il reste à faire côté Jarvi</h3>
+    <p>Un seul champ à créer : <b>« Prospecteur »</b> sur la fiche société (Martin, Adrien, Rémy). C'est lui qui attribue les comptes ; sans lui, pas de filtre ni de voyant. Les contacts, leurs fonctions, les appels et les résumés viennent déjà de Jarvi, Ringover et de la routine — les 9 sociétés ci-dessus, leurs 139 contacts et les 5 échanges résumés sont vos vraies données au 11 septembre. Seules l'attribution aux prospecteurs et la phrase « Où on en est » sont simulées ici : la phrase sera écrite par la routine du soir.</p>
+  </div>
+</div>
+
+<script>
+const SIT = { rdv:['Rendez-vous pris','good'], ouvert:['Décideur ouvert','acc'], porte:['Porte d’entrée nommée','acc'],
+  client:['Client actif','good'], direct:['Recrute en direct','crit'], besoin:['Pas de besoin','neu'],
+  relance:['Relance à prévoir','warn'], bache:['Bâché','crit'] };
+const ORDRE = ['rdv','ouvert','porte','relance','client','direct','besoin','bache'];
+const AUJ = new Date('2026-09-11');
+const PROS = ['Martin','Adrien','Rémy'];
+const SEUIL = 14; // jours sans appel du prospecteur avant alerte
+const jours = d => Math.round((AUJ - new Date(d)) / 86400000);
+const dfr = d => new Date(d).toLocaleDateString('fr-FR',{day:'2-digit',month:'short'});
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const ilya = n => n === 0 ? "aujourd'hui" : n === 1 ? 'hier' : `il y a ${n} j`;
+
+// contact : [nom, fonction, appels]
+// appel   : [date, parQui, situation|null, résumé|null, prochaine étape|null]   situation null = tentative sans échange
+const SOC = [
+{n:'cecurity-com', sec:'Éditeur de logiciels · confiance numérique', p:'Rémy',
+ e:"Deux passages de Rémy (4 et 11 sept.) sur les quatre mêmes profils techniques, aucun décroché : le compte n'a encore produit aucun échange. Les fonctions RH et produit n'ont jamais été tentées.", eAt:'2026-09-11 18:05', c:[
+ ['Bruno Ricci','Directeur des solutions d’architecture et Avant-Vente',[['2026-09-11','Rémy'],['2026-09-04','Rémy']]],
+ ['Jérôme Pelletier','Ingénieur projet',[['2026-09-11','Rémy'],['2026-09-04','Rémy']]],
+ ['Philippe Poggi','Ingénieur tests et qualification logiciel',[['2026-09-11','Rémy'],['2026-09-04','Rémy']]],
+ ['Michaël Marcelin','Ingénieur systèmes et réseaux',[['2026-09-04','Rémy']]],
+ ['Florentine Ponthieu','Responsable des ressources humaines'],
+ ['Didier Couderc','Ingénieur produit'],
+ ['Isabelle Perrier','Responsable support MyCecurity / production coffre-fort'],
+ ['Jonathan Germain','Ingénieur consultant'],
+ ['Jurgen Douchy','Software developer Java et C#'],
+ ['Stéphane Huette','Consultant Java JEE'],
+ ['Jean-Sébastien Sainte-Rose','Ingénieur informatique / développeur'],
+ ['Romain Joly-Moal','Administrateur système, réseau et sécurité'],
+ ['Jean-Baptiste C.','Consultant IT']]},
+
+{n:'Lite', sec:'Énergie / Tech', p:'Rémy',
+ e:"Mathieu Lorber (CTO) est le seul contact joint : un poste de dev évoqué en juillet, à reconfirmer, un mail promis et un rappel attendu. Rémy n'est pas repassé sur le compte depuis le 3 septembre ; c'est Adrien qui a rappelé le 11.", eAt:'2026-09-11 18:05', c:[
+ ['Matthieu Lemonnier','Développeur fullstack — Kotlin, Java, Spring Boot',[['2026-09-01','Rémy']]],
+ ['Mathieu Lorber','CTO & cofondateur',[
+   ['2026-09-11','Adrien','relance','Mathieu Lorber (CTO & co-fondateur, Lite) : trop pris pour échanger, demande un mail. Recrutement évoqué il y a quelques mois, à reconfirmer. Rappel prévu fin de semaine prochaine.','Envoyer un mail à Mathieu Lorber puis le rappeler fin de semaine prochaine.'],
+   ['2026-09-03','Rémy','relance','Mathieu Lorber injoignable (mauvaise connexion) ; le poste de dev évoqué en juillet reste d’actualité. Rappel convenu la semaine prochaine.','Rappeler Mathieu Lorber la semaine du 08/09 au sujet du poste de dev.'],
+   ['2026-09-01','Rémy']]],
+ ['Emmanuel Rozenkier','Data scientist']]},
+
+{n:'EasyVista', sec:'Éditeur de logiciels · ITSM', p:'Rémy',
+ e:"Compte jamais entamé par Rémy : c'est Martin qui a tenté le CTO et le manager platform le 11 sept., sans décroché. 16 contacts identifiés, aucun échange.", eAt:'2026-09-11 18:05', c:[
+ ['Amedee Potier','CTO',[['2026-09-11','Martin']]],
+ ['Vincent Bougnol','Manager of Platform Engineering Teams',[['2026-09-11','Martin']]],
+ ['Ludovic Da Silva','VP of Engineering'],
+ ['Cristina Zenati Costanzo','Global Chief People Officer'],
+ ['David Levayer','R&D Engineering Manager'],
+ ['Norbert Mauger','Tech Lead & R&D Manager'],
+ ['Michaël Cohen','Product & Tech Value Creation Leader'],
+ ['ETEKA Wilfried','Tech Lead fullstack'],
+ ['Matthieu Harel','Fullstack engineer — Node.js, React, Python'],
+ ['Benjamin Ribou','Platform & DevOps engineer'],
+ ['Norman Thoretton','R&D Senior software engineer'],
+ ['Serine Sefardjelah','Software engineer — backend, data, IA'],
+ ['Karen Sotta','QA & software test engineer'],
+ ['Gyorgy Joseph','Global SecOps engineer'],
+ ['Marc F.','Cyber security engineer'],
+ ['Ethan Duong','Alternant développeur web']]},
+
+{n:'Oodrive', sec:'Éditeur de logiciels · SaaS de confiance', p:'Martin',
+ e:"Martin a tenté quatre développeurs les 3 et 11 sept., aucun décroché. Les décideurs (CTO, DSI, RSSI, RH) restent à appeler sur un compte de 32 contacts.", eAt:'2026-09-11 18:05', c:[
+ ['Achraf Trabelsi','Senior iOS developer',[['2026-09-11','Martin']]],
+ ['Ahmed Bouhlel','Développeur fullstack',[['2026-09-11','Martin'],['2026-09-11','Martin'],['2026-09-03','Martin']]],
+ ['Thibault Grard','Software engineer',[['2026-09-11','Martin']]],
+ ['Christophe Najar','Senior network engineer'],
+ ['Thomas Chambon','CTO'],
+ ['Thomas Rossier','Chief Technology Officer — Oodrive Sign'],
+ ['Julien Enfer','Directeur des systèmes d’information — CIO Group'],
+ ['Yann-Gérald Lerayer','Chief Data Officer'],
+ ['Mohamed Ait Saidi','Group CISO — directeur cybersécurité'],
+ ['Cédric Mermilliod','Co-CEO'],
+ ['Stanislas De Rémur','Président'],
+ ['Frédéric Sourivong','Engineering manager'],
+ ['Jean-Louis Divol','Lead architect'],
+ ['Hichem Laroussi','Android team lead'],
+ ['Mattieu Pompon','Team lead — ingénieur système et réseaux'],
+ ['Vincent Dupain','Lead engineer DevOps'],
+ ['Aline Nivaud','Head of People'],
+ ['Sihame O.','Responsable recrutement et développement RH'],
+ ['Camille Sauvage','Talent Acquisition Business Partner'],
+ ['Alexis Bouchut','Talent & People Development Leader'],
+ ['Laura Bouvier','HR Business Partner'],
+ ['Ludivine Bréda','Human Resources Business Partner'],
+ ['Robin Boisson','Delivery et customer support manager'],
+ ['Haykel Guetat','Test automation engineer — SDET lead'],
+ ['Youssef Chtourou','Senior DevOps engineer'],
+ ['Edward Gent','Ingénieur logiciel senior .NET/C#'],
+ ['Brian Hamonic','Ingénieur système'],
+ ['Jérôme Bellier','Ingénieur R&D'],
+ ['Agathe Savonet','Ingénieure data — analytics engineer'],
+ ['Gilles Legrand','Data engineer'],
+ ['Jacques Reynaud','Expertise infrastructure et opérations IT'],
+ ['Florian C.','Analyste SOC — ingénieur cybersécurité']]},
+
+{n:'Hello Watt', sec:'Énergie', p:'Martin',
+ e:"Deux salariés joints le 11 sept. : Hello Watt ne passe pas par des cabinets (job boards et cooptation) et ne recrute que des seniors. Le seul angle restant est Thibaud Halpern, côté RH, jamais appelé.", eAt:'2026-09-11 18:05', c:[
+ ['Andréa Epivent','Software engineer',[['2026-09-11','Martin','porte','Chez Hello Watt, pas de recrutement via cabinets — job boards et cooptation. Contact RH cité : Thibaud Halpern.','Contacter Thibaud Halpern (RH) pour confirmer leur politique de recrutement.']]],
+ ['Eliott Sizey','Software engineer',[['2026-09-11','Martin','direct','Recrutement limité aux postes seniors, via plateformes (Welcome to the Jungle) et cooptation, pas de cabinets.']]],
+ ['Yannick Ezvan','Développeur fullstack',[['2026-09-11','Martin']]],
+ ['Sylvain Le Falher','Fondateur & CEO'],
+ ['Thibaud Halpern','HR and Talent Acquisition Manager'],
+ ['Valentin Ancellin','HR Business Partner'],
+ ['Sacha Guihéneuf','Human Resources Business Partner'],
+ ['David Conesa','Chargé de recrutement'],
+ ['Thibaut Decombe','Lead developer'],
+ ['Benoit Richert','Lead engineer'],
+ ['Guillaume Matheron','Lead data scientist'],
+ ['Adrien Milcent','Lead product designer'],
+ ['Charly Andral','Data scientist'],
+ ['Mattéo L.','Développeur fullstack'],
+ ['Thomas Levasseur','Software engineer'],
+ ['Clément Boloch','Consultant & fullstack developer'],
+ ['Lucien Marey','Fullstack developer'],
+ ['Robin Mouchart','Développeur fullstack'],
+ ['Damien Martel','Ingénieur fullstack React/Node/Python'],
+ ['Théo Poncelet','Développeur web']]},
+
+{n:'Praxedo', sec:'Éditeur de logiciels · SaaS terrain', p:'Martin',
+ e:"Compte de Martin entamé par Rémy : quatre tentatives le 11 sept., aucun décroché. 33 contacts, dont le CTO et le Head of Engineering, jamais appelés.", eAt:'2026-09-11 18:05', c:[
+ ['Alexandre Noiret','Tech lead',[['2026-09-11','Rémy']]],
+ ['Evelyne Wang','Fullstack developer',[['2026-09-11','Rémy']]],
+ ['Michael C.','Head of QA',[['2026-09-11','Rémy']]],
+ ['Nicolas Precheur','Engineering manager',[['2026-09-11','Rémy']]],
+ ['Pierre Lavigne','CTO & cofondateur'],
+ ['Sylvain Rivollet','Head of Engineering'],
+ ['Vanessa Abitbol','Senior software engineering manager'],
+ ['Juliette Coudyser','Talent manager'],
+ ['Mathilde Garach','Head of Operations — RevOps'],
+ ['Frédéric Blanc','Software architect'],
+ ['Jean-Baptiste Heidet','Tech lead / architecte logiciel'],
+ ['Alexandre Breux','iOS developer'],
+ ['Antoine Chwat','Mobile technical lead'],
+ ['Samuel Coz','Technical lead'],
+ ['Kevin G.','Technical leader'],
+ ['Jérôme Kehrmeet','Team leader'],
+ ['Romain Chauveau','Tech lead Java'],
+ ['Romain Gagnaire','Lead backend developer'],
+ ['Charles-Adrien Fournier','Lead développeur iOS'],
+ ['Morad Chait','Senior Java/JEE backend developer'],
+ ['Florent Belin','Senior fullstack engineer'],
+ ['Adel El Amraoui','Software engineer'],
+ ['Younes Abounaceur','Software engineer — backend'],
+ ['Kévin Le Clech','Développeur fullstack Java'],
+ ['Marguerite Maillere','Backend developer'],
+ ['Erwann Chapellon','Fullstack developer'],
+ ['Arthur Khadraoui-Nicod','Développeur fullstack'],
+ ['Valérian Malay','Ingénieur logiciel'],
+ ['Julien Dos Santos','Développeur Android'],
+ ['Xavier Lencou','Android engineer'],
+ ['Benjamin Bleriot','Développeur Android & iOS'],
+ ['Robin Vassel','DevOps engineer'],
+ ['Jean-Kevin Kpadey','Ingénieur DevOps']]},
+
+{n:'Keobiz', sec:'Conseil · comptabilité en ligne', p:'Adrien',
+ e:"Julie Cerisier (DRH) a été appelée quatre fois depuis le 1er sept. sans jamais décrocher. Les cinq profils tech du compte n'ont pas encore été tentés.", eAt:'2026-09-11 18:05', c:[
+ ['Julie Cerisier','Directrice des ressources humaines',[['2026-09-11','Adrien'],['2026-09-09','Adrien'],['2026-09-02','Adrien'],['2026-09-01','Adrien']]],
+ ['Aurore Tenant','Team lead RH — admin & paie'],
+ ['Allyson Beaucourt','Tech lead'],
+ ['Nicolas Pélican','Ingénieur fullstack'],
+ ['Florian Tainlot','Software engineer'],
+ ['Fiona Delsing','Dev fullstack JS — Node, GraphQL, React'],
+ ['Théo Le Calvez','Spécialiste SEO — e-commerce & lead gen']]},
+
+{n:'libheros', sec:'Santé', p:'Adrien',
+ e:"Compte le plus avancé : le CEO confirme un poste de tech lead ouvert, deux candidats en entretien et un titulaire qui part fin septembre. La pression est sur la livraison, pas sur la prospection.", eAt:'2026-09-11 18:05', c:[
+ ['Jean-Christophe Klein','Directeur général / CEO',[
+   ['2026-09-11','Adrien','client','Jean-Christophe Klein (CEO, libheros) : poste de tech lead toujours ouvert, 2 candidats en entretien 2, rien de finalisé. Urgent, le titulaire part fin septembre.','Continuer la recherche du tech lead pour libheros.'],
+   ['2026-09-11','Adrien']]],
+ ['Florian Compiegne','Lead développeur'],
+ ['Oualid Hassan','Développeur fullstack'],
+ ['Daouda Sidibe','Développeur fullstack NestJS / React / Vue'],
+ ['Jacques Nguyen','Fullstack developer — React, Vue, NestJS']]},
+
+{n:'BIOGARAN', sec:'Pharmaceutique', p:'Adrien',
+ e:"Compte d'Adrien tenté par Rémy : DSI, architecte data et deux chefs de projet appelés le 11 sept., aucun décroché. Aucun échange, RH et direction data jamais tentées.", eAt:'2026-09-11 18:05', c:[
+ ['Franck Ekwa','IT Infrastructure & Support Manager',[['2026-09-11','Rémy']]],
+ ['Frédéric Riou','DSI',[['2026-09-11','Rémy']]],
+ ['Hadhami Matmati','Data & Integration Architect',[['2026-09-11','Rémy']]],
+ ['Samy Hassaoui','Chef de projet systèmes et données',[['2026-09-11','Rémy']]],
+ ['Romain Paggetti','CIO Officer'],
+ ['Axelle Lienard','Directrice des ressources humaines'],
+ ['Maéva Buchheit','RH généraliste'],
+ ['Hervé Burel','Head of Data — stratégie data & IA'],
+ ['Marc Parmentier','Architecte data'],
+ ['Vincent Arnaud','Expert data'],
+ ['Wissem Drissi','Senior Java / expert Tibco EBX5']]}
+];
+
+let filtre = 'tous', recherche = '', tri = 'afaire', vue = 'tous', sitF = 'toutes', choisi = null, rechC = '';
+
+const app = x => x[2] || [];                              // appels d'un contact
+const dernier = x => app(x).map(a => a[0]).sort().pop() || null;
+const parQui = x => { const d = dernier(x); return d ? app(x).find(a => a[0] === d)[1] : null; };
+const appelesPar = (s,q) => s.c.filter(x => app(x).some(a => a[1] === q));
+const parLui = s => appelesPar(s, s.p);
+const tousApp = s => s.c.filter(x => app(x).length);
+const datesDe = (s,q) => s.c.flatMap(x => app(x)).filter(a => !q || a[1] === q).map(a => a[0]).sort();
+const dernierLui = s => datesDe(s, s.p).pop() || null;
+const dernierTous = s => datesDe(s).pop() || null;
+const etat = s => { const d = dernierLui(s); if (!d) return 'jamais'; return jours(d) >= SEUIL ? 'vieux' : 'ok'; };
+const sits = s => [...new Set(s.c.flatMap(x => app(x)).map(a => a[2]).filter(Boolean))];
+const sitChaude = s => sits(s).sort((a,b) => ORDRE.indexOf(a) - ORDRE.indexOf(b))[0] || null;
+
+function visibles(){
+  let v = SOC.filter(s => filtre === 'tous' || s.p === filtre);
+  if (recherche){ const q = recherche.toLowerCase();
+    v = v.filter(s => s.n.toLowerCase().includes(q) || s.c.some(x => x[0].toLowerCase().includes(q))); }
+  if (sitF === 'aucune') v = v.filter(s => !sits(s).length);
+  else if (sitF !== 'toutes') v = v.filter(s => sits(s).includes(sitF));
+  if (vue === 'jamais') v = v.filter(s => etat(s) === 'jamais');
+  if (vue === 'vieux') v = v.filter(s => etat(s) === 'vieux');
+  if (vue === 'echange') v = v.filter(s => sits(s).length);
+  const cle = { afaire: s => [etat(s) === 'jamais' ? 0 : etat(s) === 'vieux' ? 1 : 2,
+                              -(s.c.length - parLui(s).length), s.n.toLowerCase()],
+                recent: s => [dernierLui(s) ? -new Date(dernierLui(s)) : 1e13, s.n.toLowerCase()],
+                nom:    s => [s.n.toLowerCase()],
+                pros:   s => [s.p, s.n.toLowerCase()] }[tri];
+  return v.slice().sort((a,b) => { const x = cle(a), y = cle(b);
+    for (let i=0;i<x.length;i++){ if (x[i] < y[i]) return -1; if (x[i] > y[i]) return 1; } return 0; });
+}
+
+function rendreOutils(){
+  const base = SOC.filter(s => filtre === 'tous' || s.p === filtre);
+  const nb = k => k === 'aucune' ? base.filter(s => !sits(s).length).length : base.filter(s => sits(s).includes(k)).length;
+  const pil = (k,l,pt,n,off) => `<button type="button" class="pil sit" data-sit="${k}" aria-pressed="${sitF===k}"${off?' disabled':''}>${pt?`<span class="pt ${pt}"></span>`:''}${l}${n!==null?`<span class="cpt">${n}</span>`:''}</button>`;
+  document.getElementById('outils').innerHTML =
+    `<span class="etiq">Comptes de</span>` +
+    ['tous',...PROS].map(p => `<button type="button" class="pil" data-filtre="${p}" aria-pressed="${filtre===p}">${p==='tous'?'Toute l’équipe':p}</button>`).join('') +
+    `<span class="sep"></span>
+     <input type="search" id="rech" placeholder="Société ou contact…" value="${esc(recherche)}" aria-label="Rechercher">`;
+  document.getElementById('outils2').innerHTML =
+    `<span class="etiq">Situation</span>` +
+    pil('toutes','Toutes',null,null,false) +
+    ORDRE.map(k => pil(k, SIT[k][0], SIT[k][1], nb(k), nb(k)===0)).join('') +
+    pil('aucune','Aucun échange','neu',nb('aucune'),nb('aucune')===0);
+}
+
+function rendreChiffres(){
+  const v = SOC.filter(s => filtre === 'tous' || s.p === filtre);
+  const jam = v.filter(s => etat(s) === 'jamais').length;
+  const vx  = v.filter(s => etat(s) === 'vieux').length;
+  const rest = v.reduce((n,s) => n + (s.c.length - parLui(s).length), 0);
+  const ech = v.filter(s => sits(s).length).length;
+  const b = (k,cls,n,l) => `<button type="button" class="chiffre ${cls}" data-vue="${k}" aria-pressed="${vue===k}"><b>${n}</b><span>${l}</span></button>`;
+  document.getElementById('chiffres').innerHTML =
+    b('tous','',v.length,'comptes attribués') +
+    b('jamais','alerte',jam,'jamais contactés par leur prospecteur') +
+    b('vieux','tiede',vx,`sans appel depuis ${SEUIL} j et plus`) +
+    b('reste','',rest,'contacts jamais appelés') +
+    b('echange','bien',ech,'comptes avec un échange');
+}
+
+function rendreTable(){
+  const v = visibles();
+  const s0 = choisi ? SOC.find(s => s.n === choisi) : null;
+  const th = (k,l) => `<th><button type="button" data-tri="${k}" ${tri===k?'aria-sort="descending"':''}>${l}</button></th>`;
+  const lignes = v.map(s => {
+    const k = parLui(s).length, tot = s.c.length, d = dernierLui(s), e = etat(s), sit = sitChaude(s);
+    const dt = dernierTous(s);
+    const pct = Math.round(k / tot * 100);
+    const qui = dt ? (s.c.flatMap(x => app(x)).find(a => a[0] === dt) || [])[1] : null;
+    return `<tr class="rangee" data-choisir="${esc(s.n)}" aria-selected="${s.n===choisi}" tabindex="0">
+      <td><span class="nom">${esc(s.n)}</span><span class="sous">${esc(s.sec)}</span>
+          <span class="etat" title="${esc(s.e)}">${esc(s.e)}</span></td>
+      <td>${esc(s.p)}</td>
+      <td><span class="jauge${k?'':' vide'}"><i style="width:${k?pct:100}%"></i></span>
+          <span class="sous"><b>${k}</b>/${tot} contacts appelés</span></td>
+      <td><span class="quand ${e==='jamais'?'jamais':e==='vieux'?'vieux':''}">
+          ${d ? `<b>${ilya(jours(d))}</b><span class="par">${dfr(d)}</span>`
+              : `<b>jamais</b>${dt ? `<span class="par">${esc(qui)} y est allé le ${dfr(dt)}</span>` : ''}`}
+          </span></td>
+      <td>${sit ? `<span class="past ${SIT[sit][1]}">${SIT[sit][0]}</span>` : '<span class="sous">—</span>'}</td>
+    </tr>`; }).join('');
+  document.getElementById('grille').className = 'grille' + (s0 ? ' ouvert' : '');
+  document.getElementById('grille').innerHTML = `
+    <div class="bloc"><div class="tabwrap"><table>
+      <thead><tr>${th('nom','Compte')}${th('pros','Prospecteur')}${th('afaire','Contacts appelés')}${th('recent','Dernier appel du prospecteur')}<th>Situation</th></tr></thead>
+      <tbody>${lignes || `<tr><td colspan="5" class="vide">Aucun compte ne correspond.</td></tr>`}</tbody>
+    </table></div></div>
+    ${s0 ? fiche(s0) : ''}`;
+}
+
+function filAppels(x){
+  return `<div class="appels">` + app(x).map(a => {
+    const [dt, qui, sit, res, suite] = a;
+    return `<div class="ap">
+      <div class="tete"><b>${dfr(dt)}</b> · ${esc(qui)} ·
+        ${sit ? `<span class="past ${SIT[sit][1]}">${SIT[sit][0]}</span>` : `<span class="past neu">Pas de décroché</span>`}</div>
+      ${res ? `<p>${esc(res)}</p>` : ''}
+      ${suite ? `<p class="suite"><b>À faire :</b> ${esc(suite)}</p>` : ''}
+    </div>`; }).join('') + `</div>`;
+}
+
+function fiche(s){
+  const lui = parLui(s), autres = s.c.filter(x => app(x).length && !app(x).some(a => a[1] === s.p)), jam = s.c.filter(x => !app(x).length);
+  const d = dernierLui(s), e = etat(s), nEch = s.c.filter(x => app(x).some(a => a[2])).length;
+  const q = rechC.toLowerCase();
+  const garde = x => !q || x[0].toLowerCase().includes(q) || (x[1]||'').toLowerCase().includes(q);
+  const ligne = (x, cls) => { const dd = dernier(x), ech = app(x).some(a => a[2]);
+    return `<div class="contact ${cls}${ech?' ech':''}">
+      <span><b>${esc(x[0])}</b><em>${esc(x[1])}</em></span>
+      <span class="d">${dd ? `${dfr(dd)}<small>${ilya(jours(dd))} · ${esc(parQui(x))}</small>` : `jamais<small>appelé</small>`}</span>
+      ${app(x).length ? filAppels(x) : ''}
+    </div>`; };
+  const groupe = (titre, liste, cls) => { const l = liste.filter(garde); return l.length
+    ? `<div class="groupe">${titre} (${l.length})</div>` + l.map(x => ligne(x, cls)).join('') : ''; };
+  return `<div class="bloc fiche">
+    <div class="bandeau">
+      <div><h2>${esc(s.n)}</h2>
+        <div class="sous2">${esc(s.sec)} · compte de ${esc(s.p)} · ${s.c.length} contacts dans Jarvi</div></div>
+      <button type="button" class="fermer" data-fermer aria-label="Fermer">×</button>
+    </div>
+    <div class="oue">
+      <p>${esc(s.e)}</p>
+      <span class="sig">Où on en est — réécrit par la routine le ${dfr(s.eAt)} à ${s.eAt.slice(11,16).replace(':','h')}</span>
+    </div>
+    <div class="trois">
+      <div><b class="${e==='jamais'?'crit':''}">${lui.length}<small style="font-size:12px;color:var(--muted)">/${s.c.length}</small></b><span>appelés par ${esc(s.p)}</span></div>
+      <div><b class="${e==='jamais'?'crit':e==='vieux'?'warn':''}">${d ? jours(d)+' j' : '—'}</b><span>depuis son dernier appel</span></div>
+      <div><b class="${nEch?'':'crit'}">${nEch}</b><span>contacts avec un échange</span></div>
+    </div>
+    <div class="section">
+      <h3>Les contacts <span class="aide">${jam.length} jamais appelés</span></h3>
+      <input type="search" class="rech-contacts" id="rechC" placeholder="Filtrer par nom ou fonction…" value="${esc(rechC)}" aria-label="Filtrer les contacts">
+      ${groupe('Appelés par ' + s.p, lui, '')}
+      ${groupe('Appelés par quelqu’un d’autre', autres, 'autre')}
+      ${groupe('Jamais appelés', jam, 'jam')}
+      ${(!lui.filter(garde).length && !autres.filter(garde).length && !jam.filter(garde).length)
+        ? '<p class="sous" style="padding:10px 0">Aucun contact ne correspond.</p>' : ''}
+    </div>
+  </div>`;
+}
+
+function rendre(){ rendreOutils(); rendreChiffres(); rendreTable(); }
+
+document.addEventListener('click', ev => {
+  const t = ev.target.closest('[data-filtre],[data-sit],[data-vue],[data-tri],[data-choisir],[data-fermer]');
+  if (!t || t.disabled) return;
+  if (t.dataset.filtre){ filtre = t.dataset.filtre; if (choisi && !visibles().some(s=>s.n===choisi)) choisi = null; return rendre(); }
+  if (t.dataset.sit){ sitF = sitF === t.dataset.sit ? 'toutes' : t.dataset.sit;
+    if (choisi && !visibles().some(s=>s.n===choisi)) choisi = null; return rendre(); }
+  if (t.dataset.vue){ vue = vue === t.dataset.vue ? 'tous' : t.dataset.vue; return rendre(); }
+  if (t.dataset.tri){ tri = t.dataset.tri; return rendreTable(); }
+  if (t.dataset.choisir){ choisi = choisi === t.dataset.choisir ? null : t.dataset.choisir; rechC = ''; return rendreTable(); }
+  if (t.hasAttribute('data-fermer')){ choisi = null; rechC = ''; return rendreTable(); }
+});
+document.addEventListener('input', ev => {
+  if (ev.target.id === 'rech'){ recherche = ev.target.value; const p = ev.target.selectionStart;
+    rendre(); const i = document.getElementById('rech'); i.focus(); i.setSelectionRange(p,p); }
+  if (ev.target.id === 'rechC'){ rechC = ev.target.value; const p = ev.target.selectionStart;
+    rendreTable(); const i = document.getElementById('rechC'); if (i){ i.focus(); i.setSelectionRange(p,p); } }
+});
+document.addEventListener('keydown', ev => {
+  if (ev.key === 'Escape' && choisi){ choisi = null; rendreTable(); }
+  if (ev.key === 'Enter' && ev.target.matches('[data-choisir]')) ev.target.click();
+});
+
+rendre();
+</script>
+
+</body>
+</html>

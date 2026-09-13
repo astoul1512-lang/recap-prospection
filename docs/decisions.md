@@ -400,3 +400,57 @@ et l'étiquette est retirée.
 c'est le schéma qu'il faut corriger. Un contournement qui fonctionne devient
 une convention non écrite, puis un piège pour celui qui lira `tags` en croyant
 n'y trouver que des étiquettes Ringover.
+
+---
+
+## D9 — Le prospecteur est le responsable Jarvi, pas un champ à créer
+
+**Décidé le 13 septembre 2026, par Adrien.**
+
+### Ce que demandait le lot
+
+Le lot « Sociétés » §1 ouvrait sur un champ personnalisé à créer à la main dans
+Jarvi — **« Prospecteur »**, choix unique, `Martin` / `Adrien` / `Rémy` — et
+faisait de sa création le préalable à tout le reste.
+
+### Ce qui est fait à la place
+
+Rien à créer : Jarvi porte déjà un **responsable** sur la fiche société
+(`assignees`). C'est lui qui attribue le compte.
+
+Vérifié avant de décider, sur trois des neuf sociétés de la maquette :
+
+| Société | Responsable Jarvi | Prospecteur de la maquette |
+|---|---|---|
+| Hello Watt | Martin Benyekkou | Martin |
+| Oodrive | Martin Benyekkou | Martin |
+| cecurity-com | Remy Basdim | Rémy |
+
+Trois sur trois. Le champ personnalisé aurait recopié à la main une information
+déjà présente et déjà tenue à jour.
+
+### Pourquoi
+
+Une donnée saisie deux fois finit par diverger, et c'est toujours la copie qu'on
+lit. Réattribuer un compte dans Jarvi doit suffire : la page suit, sans que
+personne ait à se souvenir d'un second champ. Accessoirement, le lot démarre
+tout de suite au lieu d'attendre une manipulation.
+
+### Les deux conséquences
+
+1. **Une société peut avoir plusieurs responsables.** Arbitré par Adrien : le
+   compte apparaît **dans la liste de chacun**. `v_comptes` est donc une ligne
+   par couple *(société × prospecteur)*, pas une ligne par société — et la
+   couverture se calcule pour chacun avec ses propres appels. Un compte partagé
+   Martin / Rémy peut être « jamais appelé » côté Martin et « à jour » côté Rémy
+   au même instant ; c'est voulu, chacun répond de son effort.
+2. **Le prénom reste la clé de rapprochement** avec la ligne Ringover, comme
+   pour le reste de l'application — `Remy Basdim` côté Jarvi, `Rémy` à l'écran.
+   L'accent et le nom de famille se perdent au passage, volontairement : six
+   personnes, aucune ambiguïté.
+
+### Ce que ça coûte
+
+Une société sans responsable dans Jarvi n'apparaît nulle part. Adrien a
+confirmé que les comptes qui l'intéressent en ont tous un ; si un compte
+manquait à l'appel, c'est la première chose à regarder.
