@@ -422,7 +422,10 @@ function brancher() {
   });
   sur('#code', 'keydown', (e) => { if (e.key === 'Enter') agir(S.etapeConnexion === 'mfa' ? 'mfa-verifier' : 'mfa-inscrire'); });
   sur('#codecx', 'keydown', (e) => { if (e.key === 'Enter') agir('code-verifier'); });
-  sur('#em', 'keydown', (e) => { if (e.key === 'Enter') agir('code-envoyer'); });
+  sur('#mdp', 'keydown', (e) => { if (e.key === 'Enter') agir('entrer'); });
+  sur('#em', 'keydown', (e) => {
+    if (e.key === 'Enter') agir(S.etapeConnexion === 'secours' ? 'code-envoyer' : 'entrer');
+  });
 }
 
 // --- Sociétés ---------------------------------------------------------------------
@@ -594,6 +597,33 @@ async function agir(action, bouton) {
     : null;
 
   switch (action) {
+    case 'entrer': {
+      const email = (document.getElementById('em')?.value || '').trim().toLowerCase();
+      const motDePasse = document.getElementById('mdp')?.value || '';
+      S.email = email;
+      if (!email || !motDePasse) {
+        S.erreurConnexion = 'Indiquez votre adresse et votre mot de passe.';
+        rendre();
+        return;
+      }
+      try {
+        await api.connexionMotDePasse(email, motDePasse);
+        S.erreurConnexion = '';
+        await demarrerSession();
+      } catch (erreur) {
+        console.error(erreur);
+        // Volontairement sans préciser laquelle des deux valeurs est fausse :
+        // c'est ce qui empêche de deviner quelles adresses existent.
+        S.erreurConnexion = 'Adresse ou mot de passe incorrect. Demandez à Adrien de vous en refaire un.';
+        rendre();
+      }
+      return;
+    }
+    case 'secours':
+      S.etapeConnexion = 'secours';
+      S.erreurConnexion = '';
+      rendre();
+      return;
     case 'renvoyer':
     case 'code-envoyer': {
       const email = action === 'renvoyer'
@@ -861,36 +891,27 @@ async function agir(action, bouton) {
         return;
       }
       try {
-        await api.inviter(email, email.split('@')[0]);
-        toast(`Invitation envoyée à ${email}.`);
+        const reponse = await api.inviter(email, email.split('@')[0]);
         await charger();
+        // Aucun courriel n'est parti : le compte est créé avec son mot de
+        // passe, et c'est Adrien qui le transmet. Sans cette fenêtre,
+        // l'invitation serait muette et la personne n'aurait aucun moyen
+        // d'entrer.
+        montrerMotDePasse(email, reponse?.mot_de_passe);
       } catch (erreur) { echec('Invitation impossible', erreur); }
       return;
     }
-    // Fabriquer un code pour quelqu'un d'autre, et le lui transmettre de la
-    // main à la main. C'est le chemin qui ne dépend d'aucun envoi de mail —
-    // ni du plafond de Supabase, ni de l'antivirus du destinataire.
-    case 'codeConnexion': {
-      const cible = bouton?.dataset.email;
-      if (!cible) return;
-      toast('Fabrication du code…');
+    // Refaire le mot de passe de quelqu'un et le lui transmettre de la main à
+    // la main. C'est le chemin qui ne dépend d'aucun envoi de courriel — ni du
+    // plafond de Supabase, ni de l'antivirus du destinataire.
+    case 'motDePasse': {
+      const membre = (S.admin.membres || []).find((u) => u.id === bouton?.dataset.membre);
+      if (!membre) return;
+      toast('Nouveau mot de passe…');
       try {
-        const reponse = await api.codeConnexion(cible);
-        const code = String(reponse?.code || '');
-        if (!code) {
-          toast('Code indisponible — réessayez, ou vérifiez que cette personne a bien un compte.');
-          return;
-        }
-        const message = `Voici ton code de connexion à Récap prospection : ${code}\n\n`
-          + `Va sur ${api.REDIRECTION}, saisis ton adresse ${cible}, clique « J'ai déjà un code », puis entre ces six chiffres. Valable une heure, une seule fois.`;
-        modale(`<h2>Code de connexion</h2>
-          <p>Pour <b>${esc(cible)}</b>. Valable une heure, utilisable une seule fois.</p>
-          <p class="codegeant num">${esc(code)}</p>
-          <p>Transmettez-le par Slack ou par SMS. La personne saisit son adresse sur l'écran de connexion, clique « J'ai déjà un code », puis tape ces six chiffres.</p>
-          <div class="fin"><button class="btn" data-act="fermerModale">Fermer</button>
-          <button class="btn primary" data-act="copierCode" data-message="${esc(message)}">Copier le message à envoyer</button></div>`);
-        brancherModale();
-      } catch (erreur) { echec('Fabrication du code impossible', erreur); }
+        const reponse = await api.refaireMotDePasse(membre.id);
+        montrerMotDePasse(membre.email, reponse?.mot_de_passe);
+      } catch (erreur) { echec('Changement impossible', erreur); }
       return;
     }
     case 'copierCode': {
@@ -1010,6 +1031,26 @@ async function agir(action, bouton) {
     }
     default:
   }
+}
+
+// Un mot de passe ne doit pas être cherché dans un écran : il est montré en
+// grand, et le message à envoyer est prêt à coller. C'est la différence entre
+// une fonction qui marche et une fonction qu'on n'utilise pas.
+function montrerMotDePasse(email, motDePasse) {
+  if (!motDePasse) {
+    toast('Mot de passe indisponible — réessayez dans un instant.');
+    return;
+  }
+  const message = `Voici ton accès à Récap prospection.\n\n`
+    + `Adresse : ${email}\nMot de passe : ${motDePasse}\n\n`
+    + `Connexion : ${api.REDIRECTION}`;
+  modale(`<h2>Mot de passe</h2>
+    <p>Pour <b>${esc(email)}</b>. Il remplace l'ancien, immédiatement.</p>
+    <p class="codegeant num">${esc(motDePasse)}</p>
+    <p>Transmettez-le par Slack ou par SMS. C'est la seule fois où il s'affiche — s'il se perd, refaites-en un, c'est sans conséquence.</p>
+    <div class="fin"><button class="btn" data-act="fermerModale">Fermer</button>
+    <button class="btn primary" data-act="copierCode" data-message="${esc(message)}">Copier le message à envoyer</button></div>`);
+  brancherModale();
 }
 
 function brancherModale() {

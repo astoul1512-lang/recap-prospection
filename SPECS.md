@@ -71,7 +71,7 @@ Anthropic◀──Messages API ────────────────�
 Slack    ◀──webhook entrant ──────── edge fn notify-slack (08:45)
 
 Application web (GitHub Pages, statique) ──supabase-js + JWT──▶ PostgREST (RLS) / edge fns
-Supabase Auth : invitation seule, code à six chiffres par e-mail (D11), MFA admin
+Supabase Auth : invitation seule, mot de passe posé par l'admin (D13), MFA admin
 ```
 
 ### 2.1 Stack
@@ -354,7 +354,7 @@ Webhook entrant (URL dans `slack_webhook`), message en blocs `mrkdwn`, une ligne
 
 ### 7.2 Authentification (front)
 
-- Écran de connexion, en deux temps : email → `signInWithOtp({email, options:{shouldCreateUser:false, emailRedirectTo}})`, puis code à six chiffres → `verifyOtp({email, token, type:'email'})` (D11). Flux PKCE. Trois échecs nommés : plafond d'envoi (429), code refusé, lien déjà ouvert ou ouvert sur un autre appareil.
+- Écran de connexion : adresse + mot de passe → `signInWithPassword` (D13). Les comptes et leurs mots de passe sont créés depuis l'écran d'administration (`admin/invite`, `admin/password`), jamais par courriel : l'expéditeur intégré est plafonné à deux messages par heure. Secours : code à six chiffres par courriel (`signInWithOtp` puis `verifyOtp`), avec son plafond annoncé à l'écran.
 - Après session : charger `app_users` (sa ligne) ; si absent/inactif → écran « Adresse non invitée, demandez l'accès à Adrien » + `signOut()`.
 - Admin : si `aal` ≠ `aal2` → écran d'inscription/vérification TOTP (`mfa.enroll` / `mfa.challenge` / `mfa.verify`) avant d'accéder à `#admin`.
 - Déconnexion, expiration : sur `SIGNED_OUT`/`TOKEN_REFRESHED` échoué → retour à `#login` sans « flash » de données (l'app ne rend rien tant que la session n'est pas vérifiée).

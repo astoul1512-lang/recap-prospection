@@ -35,13 +35,31 @@ export function uuidValide(valeur: unknown): string | null {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(v) ? v : null;
 }
 
+// Un mot de passe fait pour être recopié d'un message Slack, pas pour être
+// retenu par cœur : trois groupes de quatre, séparés par des tirets.
+//
+// L'alphabet écarte les caractères qui se confondent à la lecture — i/l/1,
+// o/0 — parce que la panne la plus probable de ce mot de passe n'est pas une
+// attaque, c'est quelqu'un qui recopie un « l » là où il y avait un « 1 » et
+// qui croit que l'application est cassée.
+const ALPHABET = "abcdefghjkmnpqrstuvwxyz23456789";
+
+export function motDePasseAleatoire(): string {
+  const octets = new Uint8Array(12);
+  crypto.getRandomValues(octets);
+  const lettres = Array.from(octets, (o) => ALPHABET[o % ALPHABET.length]);
+  return [lettres.slice(0, 4), lettres.slice(4, 8), lettres.slice(8, 12)]
+    .map((g) => g.join(""))
+    .join("-");
+}
+
 export type Action =
   | "invite"
   | "activate"
   | "deactivate"
   | "erase"
   | "webhook-test"
-  | "login-code";
+  | "password";
 
 const ACTIONS: readonly Action[] = [
   "invite",
@@ -49,7 +67,7 @@ const ACTIONS: readonly Action[] = [
   "deactivate",
   "erase",
   "webhook-test",
-  "login-code",
+  "password",
 ];
 
 export function actionDemandee(url: string): Action | null {

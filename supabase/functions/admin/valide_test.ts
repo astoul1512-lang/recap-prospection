@@ -1,5 +1,12 @@
-import { estEgal } from "../_shared/verifs.ts";
-import { actionDemandee, emailInvitable, nomAffiche, roleValide, uuidValide } from "./valide.ts";
+import { estEgal, estFaux, estVrai } from "../_shared/verifs.ts";
+import {
+  actionDemandee,
+  emailInvitable,
+  motDePasseAleatoire,
+  nomAffiche,
+  roleValide,
+  uuidValide,
+} from "./valide.ts";
 
 Deno.test("invitations : seul le domaine du cabinet passe", () => {
   estEgal(emailInvitable("alexandre@cabinet-ekinox.fr"), "alexandre@cabinet-ekinox.fr");
@@ -39,9 +46,26 @@ Deno.test("routage : seules les actions prévues existent", () => {
   estEgal(actionDemandee(`${base}/invite`), "invite");
   estEgal(actionDemandee(`${base}/deactivate`), "deactivate");
   estEgal(actionDemandee(`${base}/webhook-test`), "webhook-test");
-  estEgal(actionDemandee(`${base}/login-code`), "login-code", "code de connexion fabriqué à la main");
+  estEgal(actionDemandee(`${base}/password`), "password", "mot de passe refait par l'administrateur");
   estEgal(actionDemandee(`${base}/invite/`), "invite", "barre oblique finale tolérée");
   estEgal(actionDemandee(`${base}/erase?x=1`), "erase", "les paramètres n'entrent pas dans le routage");
   estEgal(actionDemandee(base), null, "sans action");
   estEgal(actionDemandee(`${base}/supprimer-tout`), null, "action inventée");
+});
+
+// Le mot de passe est recopié à la main depuis un message Slack : sa forme
+// compte autant que sa force. Un « l » pris pour un « 1 » et la personne croit
+// que l'application est cassée.
+Deno.test("mot de passe : lisible, sans caractère qui se confond", () => {
+  for (let i = 0; i < 200; i += 1) {
+    const m = motDePasseAleatoire();
+    estVrai(/^[a-z2-9]{4}-[a-z2-9]{4}-[a-z2-9]{4}$/.test(m), `forme inattendue : ${m}`);
+    estFaux(/[ilo01]/.test(m), `caractère ambigu dans ${m}`);
+  }
+});
+
+Deno.test("mot de passe : deux appels ne donnent jamais le même", () => {
+  const vus = new Set<string>();
+  for (let i = 0; i < 500; i += 1) vus.add(motDePasseAleatoire());
+  estEgal(vus.size, 500, "collision : le tirage n'est pas aléatoire");
 });

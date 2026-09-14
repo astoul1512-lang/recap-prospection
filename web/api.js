@@ -30,12 +30,17 @@ export function db() {
 
 export const REDIRECTION = `${location.origin}${location.pathname}`;
 
-// Le même appel envoie le code à six chiffres et le lien : c'est le gabarit de
-// mail, côté Supabase, qui décide de ce qui est affiché. On garde les deux —
-// mais c'est le code qui fait foi. Un lien de connexion est à usage unique, et
-// la protection des liens de Microsoft 365 l'ouvre avant l'utilisateur pour
-// l'analyser : il est grillé avant le clic humain. Un code se recopie à la
-// main, d'un appareil à l'autre, et aucun antivirus ne le consomme.
+// Le chemin normal : une adresse, un mot de passe. Aucun courriel, donc aucune
+// des deux pannes qui ont laissé un membre dehors une journée — le plafond
+// d'envoi de Supabase et l'antivirus de messagerie qui consomme les liens
+// (docs/decisions.md D13).
+export async function connexionMotDePasse(email, motDePasse) {
+  const { error } = await db().auth.signInWithPassword({ email, password: motDePasse });
+  if (error) throw error;
+}
+
+// Le secours, quand personne ne peut fournir un mot de passe : le code à six
+// chiffres par courriel. Il reste plafonné, d'où sa place de second choix.
 export async function envoyerCodeConnexion(email) {
   // `shouldCreateUser: false` : une adresse non invitée ne doit pas provoquer
   // la création d'un compte, même vide. C'est la deuxième barrière après le
@@ -346,9 +351,8 @@ async function fonctionAdmin(chemin, corps) {
 export const inviter = (email, displayName) => fonctionAdmin('admin/invite', { email, display_name: displayName, role: 'member' });
 export const activerMembre = (userId, actif) => fonctionAdmin(actif ? 'admin/activate' : 'admin/deactivate', { user_id: userId });
 export const effacerNumero = (phone) => fonctionAdmin('admin/erase', { phone });
-// Fabrique un code de connexion et le rend ici, sans envoyer de courriel :
-// c'est le seul chemin qui ne dépend pas du plafond d'envoi de Supabase.
-export const codeConnexion = (email) => fonctionAdmin('admin/login-code', { email });
+// Refait le mot de passe d'un membre et le rend ici, sans envoyer de courriel.
+export const refaireMotDePasse = (userId) => fonctionAdmin('admin/password', { user_id: userId });
 export const santeCollecte = () => fonctionAdmin('admin/webhook-test', {});
 export const relancerReconciliation = (jour) => fonctionAdmin(jour ? `reconcile?day=${jour}` : 'reconcile', {});
 // Rattrapage : reprend les N journées précédant hier, en une seule fois.

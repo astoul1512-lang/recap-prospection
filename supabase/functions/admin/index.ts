@@ -14,17 +14,23 @@ import { versE164 } from "../_shared/phone.ts";
 import {
   appelantEstAdmin,
   changerActivation,
-  codeConnexion,
   configurationPresente,
+  creerCompteAvecMotDePasse,
+  definirMotDePasse,
   effacerNumero,
   enregistrerInvitation,
-  inviterParCourriel,
   santeWebhook,
 } from "../_shared/db.ts";
-import { actionDemandee, emailInvitable, nomAffiche, roleValide, uuidValide } from "./valide.ts";
+import {
+  actionDemandee,
+  emailInvitable,
+  motDePasseAleatoire,
+  nomAffiche,
+  roleValide,
+  uuidValide,
+} from "./valide.ts";
 
 const FN = "admin";
-const SITE = Deno.env.get("site_url") ?? "https://astoul1512-lang.github.io/recap-prospection/";
 
 async function corps(req: Request): Promise<Record<string, unknown>> {
   try {
@@ -63,17 +69,23 @@ servir(async (req: Request): Promise<Response> => {
         if (!email) return reponse(400, { erreur: "email_hors_domaine" });
         if (!role) return reponse(400, { erreur: "role_invalide" });
 
-        // L'ordre compte : le déclencheur en base refuse la création d'un compte
-        // dont l'adresse n'est pas déjà inscrite. Inviter avant d'inscrire, c'est
-        // envoyer un courriel dont le lien échouera.
+        // L'ordre compte : le déclencheur en base refuse la création d'un
+        // compte dont l'adresse n'est pas déjà inscrite.
         const inscrite = await enregistrerInvitation(email, nomAffiche(donnees.display_name, email), role, auteur);
         if (!inscrite) return reponse(500, { erreur: "inscription_impossible" });
 
-        const envoye = await inviterParCourriel(email, SITE);
-        log({ fn: FN, etape: "invite", role, envoye, ms: Date.now() - debut });
-        return envoye
-          ? reponse(200, { invite: true })
-          : reponse(202, { invite: false, note: "adresse_inscrite_courriel_non_envoye" });
+        // Le compte est créé avec son mot de passe, sans le moindre courriel :
+        // l'expéditeur intégré de Supabase est plafonné à deux messages par
+        // heure et a laissé un membre dehors une journée entière (D12). Le mot
+        // de passe part par Slack, de la main d'Adrien.
+        const motDePasse = motDePasseAleatoire();
+        const cree = await creerCompteAvecMotDePasse(email, motDePasse);
+        log({ fn: FN, etape: "invite", role, cree, ms: Date.now() - debut });
+        // Le mot de passe n'est jamais journalisé : le journal dit qu'un compte
+        // a été créé, et par qui. Rien d'autre.
+        return cree
+          ? reponse(200, { invite: true, mot_de_passe: motDePasse })
+          : reponse(202, { invite: false, note: "adresse_inscrite_compte_non_cree" });
       }
 
       case "activate":
@@ -97,19 +109,20 @@ servir(async (req: Request): Promise<Response> => {
         return reponse(200, compte);
       }
 
-      // Un code de connexion, fabriqué à la demande et rendu à l'administrateur
-      // pour qu'il le transmette lui-même. Aucun courriel ne part : c'est le
-      // seul chemin qui ne dépende ni du plafond d'envoi de Supabase ni de
-      // l'antivirus de la messagerie du destinataire (docs/decisions.md D12).
+      // Un nouveau mot de passe pour un membre existant, rendu à
+      // l'administrateur qui le transmet lui-même. Aucun courriel ne part.
       //
-      // Le code n'est jamais journalisé — c'est un moyen de connexion. Le
-      // journal retient qu'un code a été fabriqué, et par qui. Rien d'autre.
-      case "login-code": {
-        const email = emailInvitable(donnees.email);
-        if (!email) return reponse(400, { erreur: "email_hors_domaine" });
-        const code = await codeConnexion(email, SITE);
-        log({ fn: FN, etape: "login-code", auteur, obtenu: Boolean(code), ms: Date.now() - debut });
-        return code ? reponse(200, { code }) : reponse(502, { erreur: "code_indisponible" });
+      // L'identifiant vient d'`app_users.id`, jamais de l'adresse : chercher un
+      // compte par son adresse, c'est risquer de tomber sur le mauvais.
+      case "password": {
+        const userId = uuidValide(donnees.user_id);
+        if (!userId) return reponse(400, { erreur: "user_id_invalide" });
+        const motDePasse = motDePasseAleatoire();
+        const fait = await definirMotDePasse(userId, motDePasse);
+        log({ fn: FN, etape: "password", auteur, fait, ms: Date.now() - debut });
+        return fait
+          ? reponse(200, { mot_de_passe: motDePasse })
+          : reponse(502, { erreur: "changement_impossible" });
       }
 
       case "webhook-test": {

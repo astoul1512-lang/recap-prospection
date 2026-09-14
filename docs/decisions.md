@@ -619,6 +619,11 @@ demande un code que personne ne peut lire.
 
 ## D12 — Un code de connexion peut se fabriquer à la main
 
+> **Remplacée le jour même par D13.** Le raisonnement tient, la solution non :
+> un code à usage unique oblige Adrien à en refabriquer un à chaque fois. On
+> garde ici la démonstration — le plafond d'envoi, les sorties possibles et ce
+> qu'elles coûtent — parce que D13 s'appuie dessus.
+
 **14 septembre 2026, suite de D11.** Passer du lien au code ne règle que la
 moitié du problème : code ou lien, les deux partent par le même canal, et ce
 canal est plafonné à **deux courriels par heure**. Alexandre est resté dehors
@@ -652,3 +657,46 @@ journal retient qu'un code a été fabriqué et par qui, rien de plus.
 
 Le jour où le cabinet aura un vrai serveur d'envoi, ce bouton restera utile
 comme secours, mais cessera d'être le chemin normal.
+
+---
+
+## D13 — Une adresse, un mot de passe
+
+**14 septembre 2026, le même jour que D11 et D12.** Trois écrans de connexion
+en une journée, c'est deux de trop. La demande d'Adrien tient en quatre mots :
+« fais un truc simple ».
+
+Le code à six chiffres de D12 marchait, mais il est à usage unique : il fallait
+en refabriquer un à chaque nouvel appareil, à chaque session expirée. Une
+solution qui demande une intervention humaine à chaque connexion n'est pas une
+solution, c'est une astreinte.
+
+**Donc : une adresse, un mot de passe, « Se connecter ».** Rien d'autre sur
+l'écran.
+
+- **Inviter** crée le compte *et* son mot de passe, et l'affiche. Aucun
+  courriel ne part.
+- **Mot de passe** en refait un pour quelqu'un qui l'a perdu, en un clic.
+- Les deux ouvrent la même fenêtre : le mot de passe en gros, et un message
+  prêt à coller dans Slack. Un mot de passe qu'il faut aller chercher dans un
+  écran est un mot de passe qu'on ne transmet pas.
+- Le mot de passe est fait pour être recopié à la main : trois groupes de
+  quatre, sans `i`, `l`, `1`, `o` ni `0`. La panne la plus probable n'est pas
+  une attaque, c'est un « l » pris pour un « 1 ».
+- Le code par courriel reste, sous le nom de **secours**, avec son plafond
+  annoncé à l'écran. Il sert le jour où plus personne ne peut fournir un mot
+  de passe.
+
+La double authentification des administrateurs ne bouge pas : elle vient
+après le mot de passe, comme avant.
+
+### Ce que ça coûte
+
+Le mot de passe est connu d'Adrien au moment où il le transmet — même pouvoir
+qu'en D12, cette fois durable. Les trois raisons de l'accepter sont les mêmes :
+un seul administrateur, propriétaire des données, qui peut déjà inviter,
+changer les rôles et désactiver. Il n'est jamais journalisé.
+
+La suite naturelle, le jour où ce sera utile : permettre à chacun de changer
+son mot de passe depuis l'application. Ce n'est pas fait — et ne pas le faire
+tout de suite, c'est justement ce qu'on avait de mieux à faire aujourd'hui.
