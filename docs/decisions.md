@@ -614,3 +614,41 @@ correction du front rend la panne lisible, elle ne la supprime pas.
 Et le code n'apparaît dans le mail que si le gabarit Supabase contient
 `{{ .Token }}`. Sans cette ligne, le mail ne montre qu'un lien et l'écran
 demande un code que personne ne peut lire.
+
+---
+
+## D12 — Un code de connexion peut se fabriquer à la main
+
+**14 septembre 2026, suite de D11.** Passer du lien au code ne règle que la
+moitié du problème : code ou lien, les deux partent par le même canal, et ce
+canal est plafonné à **deux courriels par heure**. Alexandre est resté dehors
+une journée entière pour cette seule raison.
+
+Les sorties possibles et ce qu'elles coûtent :
+
+| Sortie | Coût réel |
+|---|---|
+| Brancher un serveur d'envoi (Brevo, Mailjet…) | gratuit, mais crée un compte chez un tiers et demande de valider une adresse |
+| Passer par le Gmail du cabinet | gratuit, mais exige un mot de passe d'application qu'Adrien n'a pas le droit de créer |
+| Attendre que le plafond retombe | gratuit, et ne règle rien : la panne revient au prochain besoin |
+
+D'où la quatrième : **l'administrateur fabrique le code lui-même et le
+transmet par Slack.** L'API d'administration de Supabase sait produire un code
+sans envoyer le moindre message — c'est exactement son objet. Aucun plafond,
+aucun antivirus de messagerie, aucun service à créer, aucune adresse à
+valider. L'écran de connexion gagne un bouton « J'ai déjà un code » pour ne pas
+en redemander un par courriel, ce qui invaliderait le premier.
+
+### Ce que ça coûte, et il faut le dire
+
+Un administrateur capable de fabriquer le code de quelqu'un peut se connecter à
+sa place. C'est un vrai pouvoir, et il n'existait pas avant.
+
+Trois raisons de l'accepter ici : il n'y a qu'un seul administrateur, et c'est
+le propriétaire des données ; il peut déjà inviter, changer les rôles et
+désactiver un compte ; et l'application ne contient aucune donnée qu'un
+administrateur ne puisse déjà lire. Le code n'est **jamais** journalisé — le
+journal retient qu'un code a été fabriqué et par qui, rien de plus.
+
+Le jour où le cabinet aura un vrai serveur d'envoi, ce bouton restera utile
+comme secours, mais cessera d'être le chemin normal.

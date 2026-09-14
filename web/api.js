@@ -47,9 +47,14 @@ export async function envoyerCodeConnexion(email) {
   if (error) throw error;
 }
 
+// Deux types possibles pour le même code selon la façon dont il a été produit
+// — `signInWithOtp` ou la fabrication par un administrateur. On essaie les deux
+// plutôt que de faire dépendre une connexion d'un détail d'implémentation.
 export async function verifierCodeConnexion(email, token) {
-  const { error } = await db().auth.verifyOtp({ email, token, type: 'email' });
-  if (error) throw error;
+  const premier = await db().auth.verifyOtp({ email, token, type: 'email' });
+  if (!premier.error) return;
+  const second = await db().auth.verifyOtp({ email, token, type: 'magiclink' });
+  if (second.error) throw premier.error;
 }
 
 export async function deconnexion() {
@@ -341,6 +346,9 @@ async function fonctionAdmin(chemin, corps) {
 export const inviter = (email, displayName) => fonctionAdmin('admin/invite', { email, display_name: displayName, role: 'member' });
 export const activerMembre = (userId, actif) => fonctionAdmin(actif ? 'admin/activate' : 'admin/deactivate', { user_id: userId });
 export const effacerNumero = (phone) => fonctionAdmin('admin/erase', { phone });
+// Fabrique un code de connexion et le rend ici, sans envoyer de courriel :
+// c'est le seul chemin qui ne dépend pas du plafond d'envoi de Supabase.
+export const codeConnexion = (email) => fonctionAdmin('admin/login-code', { email });
 export const santeCollecte = () => fonctionAdmin('admin/webhook-test', {});
 export const relancerReconciliation = (jour) => fonctionAdmin(jour ? `reconcile?day=${jour}` : 'reconcile', {});
 // Rattrapage : reprend les N journées précédant hier, en une seule fois.

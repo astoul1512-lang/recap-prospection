@@ -14,6 +14,7 @@ import { versE164 } from "../_shared/phone.ts";
 import {
   appelantEstAdmin,
   changerActivation,
+  codeConnexion,
   configurationPresente,
   effacerNumero,
   enregistrerInvitation,
@@ -94,6 +95,21 @@ servir(async (req: Request): Promise<Response> => {
         if (!compte) return reponse(500, { erreur: "effacement_impossible" });
         log({ fn: FN, etape: "erase", auteur, ...compte, ms: Date.now() - debut });
         return reponse(200, compte);
+      }
+
+      // Un code de connexion, fabriqué à la demande et rendu à l'administrateur
+      // pour qu'il le transmette lui-même. Aucun courriel ne part : c'est le
+      // seul chemin qui ne dépende ni du plafond d'envoi de Supabase ni de
+      // l'antivirus de la messagerie du destinataire (docs/decisions.md D12).
+      //
+      // Le code n'est jamais journalisé — c'est un moyen de connexion. Le
+      // journal retient qu'un code a été fabriqué, et par qui. Rien d'autre.
+      case "login-code": {
+        const email = emailInvitable(donnees.email);
+        if (!email) return reponse(400, { erreur: "email_hors_domaine" });
+        const code = await codeConnexion(email, SITE);
+        log({ fn: FN, etape: "login-code", auteur, obtenu: Boolean(code), ms: Date.now() - debut });
+        return code ? reponse(200, { code }) : reponse(502, { erreur: "code_indisponible" });
       }
 
       case "webhook-test": {

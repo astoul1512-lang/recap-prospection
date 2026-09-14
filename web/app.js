@@ -29,6 +29,9 @@ const S = {
   email: '',
   etapeConnexion: 'adresse',
   erreurConnexion: '',
+  // Vrai quand le code vient d'Adrien et non d'un mail : l'écran ne doit alors
+  // ni parler du mail, ni proposer d'en renvoyer un.
+  codeDonne: false,
   mfa: null,
   message: '',
 
@@ -640,9 +643,26 @@ async function agir(action, bouton) {
       }
       return;
     }
+    // Quelqu'un à qui Adrien a transmis un code de vive voix : il ne faut
+    // surtout pas en redemander un par mail, ce serait invalider le sien.
+    case 'code-deja': {
+      const email = (document.getElementById('em')?.value || '').trim().toLowerCase();
+      if (!email.endsWith('@cabinet-ekinox.fr')) {
+        S.erreurConnexion = "Indiquez d'abord votre adresse du cabinet, puis saisissez le code.";
+        rendre();
+        return;
+      }
+      S.email = email;
+      S.erreurConnexion = '';
+      S.codeDonne = true;
+      S.etapeConnexion = 'envoye';
+      rendre();
+      return;
+    }
     case 'retour':
       S.etapeConnexion = 'adresse';
       S.erreurConnexion = '';
+      S.codeDonne = false;
       rendre();
       return;
     case 'mfa-inscrire': {
@@ -845,6 +865,44 @@ async function agir(action, bouton) {
         toast(`Invitation envoyée à ${email}.`);
         await charger();
       } catch (erreur) { echec('Invitation impossible', erreur); }
+      return;
+    }
+    // Fabriquer un code pour quelqu'un d'autre, et le lui transmettre de la
+    // main à la main. C'est le chemin qui ne dépend d'aucun envoi de mail —
+    // ni du plafond de Supabase, ni de l'antivirus du destinataire.
+    case 'codeConnexion': {
+      const cible = bouton?.dataset.email;
+      if (!cible) return;
+      toast('Fabrication du code…');
+      try {
+        const reponse = await api.codeConnexion(cible);
+        const code = String(reponse?.code || '');
+        if (!code) {
+          toast('Code indisponible — réessayez, ou vérifiez que cette personne a bien un compte.');
+          return;
+        }
+        const message = `Voici ton code de connexion à Récap prospection : ${code}\n\n`
+          + `Va sur ${api.REDIRECTION}, saisis ton adresse ${cible}, clique « J'ai déjà un code », puis entre ces six chiffres. Valable une heure, une seule fois.`;
+        modale(`<h2>Code de connexion</h2>
+          <p>Pour <b>${esc(cible)}</b>. Valable une heure, utilisable une seule fois.</p>
+          <p class="codegeant num">${esc(code)}</p>
+          <p>Transmettez-le par Slack ou par SMS. La personne saisit son adresse sur l'écran de connexion, clique « J'ai déjà un code », puis tape ces six chiffres.</p>
+          <div class="fin"><button class="btn" data-act="fermerModale">Fermer</button>
+          <button class="btn primary" data-act="copierCode" data-message="${esc(message)}">Copier le message à envoyer</button></div>`);
+        brancherModale();
+      } catch (erreur) { echec('Fabrication du code impossible', erreur); }
+      return;
+    }
+    case 'copierCode': {
+      const message = bouton?.dataset.message || '';
+      try {
+        await navigator.clipboard.writeText(message);
+        toast('Message copié — collez-le dans Slack.');
+      } catch {
+        // Presse-papiers refusé (navigateur ancien, page non sécurisée) : on ne
+        // laisse pas l'administrateur devant un bouton sans effet.
+        toast('Copie impossible : sélectionnez les six chiffres à l’écran.');
+      }
       return;
     }
     case 'reconcilier': {

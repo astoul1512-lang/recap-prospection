@@ -35,9 +35,22 @@ export function uuidValide(valeur: unknown): string | null {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(v) ? v : null;
 }
 
-export type Action = "invite" | "activate" | "deactivate" | "erase" | "webhook-test";
+export type Action =
+  | "invite"
+  | "activate"
+  | "deactivate"
+  | "erase"
+  | "webhook-test"
+  | "login-code";
 
-const ACTIONS: readonly Action[] = ["invite", "activate", "deactivate", "erase", "webhook-test"];
+const ACTIONS: readonly Action[] = [
+  "invite",
+  "activate",
+  "deactivate",
+  "erase",
+  "webhook-test",
+  "login-code",
+];
 
 export function actionDemandee(url: string): Action | null {
   const chemin = new URL(url).pathname.replace(/\/+$/, "");

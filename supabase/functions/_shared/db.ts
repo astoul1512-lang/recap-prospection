@@ -469,3 +469,33 @@ export async function inviterParCourriel(email: string, redirection: string): Pr
   });
   return r.ok;
 }
+
+// Fabrique un code de connexion sans envoyer le moindre courriel.
+//
+// `admin/generate_link` produit le lien et le code, et les rend à l'appelant au
+// lieu de les poster : c'est exactement ce qu'il faut ici. L'expéditeur intégré
+// de Supabase est plafonné à deux courriels par heure — un plafond qui a laissé
+// un membre dehors une journée entière — et la protection des liens de Microsoft
+// 365 grille les liens avant le clic de l'utilisateur (docs/decisions.md D12).
+// Un code transmis de la main à la main ne dépend ni de l'un ni de l'autre.
+export async function codeConnexion(email: string, redirection: string): Promise<string | null> {
+  const r = await fetchAvecDelai(`${BASE}/auth/v1/admin/generate_link`, {
+    method: "POST",
+    headers: entetes(),
+    body: JSON.stringify({ type: "magiclink", email, redirect_to: redirection }),
+  });
+  if (!r.ok) return null;
+  let brut: Record<string, unknown>;
+  try {
+    brut = await r.json() as Record<string, unknown>;
+  } catch {
+    return null;
+  }
+  // L'API REST rend le code à plat ; les bibliothèques le rangent sous
+  // `properties`. On accepte les deux plutôt que de parier sur l'un — le code
+  // n'est lu nulle part ailleurs, une erreur de nom ici ne lèverait aucune
+  // exception et rendrait simplement « impossible » à l'écran.
+  const dessous = brut.properties as Record<string, unknown> | undefined;
+  const code = brut.email_otp ?? dessous?.email_otp;
+  return typeof code === "string" && /^[0-9]{6,}$/.test(code) ? code : null;
+}

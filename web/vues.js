@@ -86,13 +86,15 @@ export function vueConnexion(S) {
     // Le code, pas le lien : le lien reste dans le mail en secours, mais il
     // est à usage unique et les antivirus de messagerie l'ouvrent avant
     // l'utilisateur. Le code, lui, se recopie depuis n'importe quel appareil.
-    etapes = `<div class="pill good bloc">Code envoyé à <b>${esc(S.email)}</b>. Il est dans le mail, en gros caractères, et reste valable une heure.</div>
+    etapes = `<div class="pill good bloc">${S.codeDonne
+      ? `Saisissez le code à six chiffres qu'Adrien vous a transmis pour <b>${esc(S.email)}</b>.`
+      : `Code envoyé à <b>${esc(S.email)}</b>. Il est dans le mail, en gros caractères, et reste valable une heure.`}</div>
       <div class="field"><label for="codecx">Code à six chiffres</label>
         <input id="codecx" inputmode="numeric" maxlength="6" autocomplete="one-time-code" autofocus>
-        <span class="aide">Le mail contient aussi un lien. Il marche, mais seulement sur cet appareil et une seule fois — le code est plus sûr.</span></div>
+        ${S.codeDonne ? '' : '<span class="aide">Le mail contient aussi un lien. Il marche, mais seulement sur cet appareil et une seule fois — le code est plus sûr.</span>'}</div>
       ${S.erreurConnexion ? `<div class="pill crit bloc">${esc(S.erreurConnexion)}</div>` : ''}
       <button class="btn primary lg" data-act="code-verifier">Se connecter</button>
-      <button class="btn lg" data-act="renvoyer">Renvoyer un code</button>
+      ${S.codeDonne ? '' : '<button class="btn lg" data-act="renvoyer">Renvoyer un code</button>'}
       <button class="btn lg" data-act="retour">Changer d'adresse</button>`;
   } else if (S.etapeConnexion === 'mfa-inscription') {
     etapes = `<div class="field"><label>Double authentification (obligatoire pour les administrateurs)</label>
@@ -112,8 +114,9 @@ export function vueConnexion(S) {
   } else {
     etapes = `<div class="field"><label for="em">Adresse e-mail</label><input id="em" type="email" value="${esc(S.email)}" autocomplete="email" placeholder="prenom@cabinet-ekinox.fr"></div>
       <button class="btn primary lg" data-act="code-envoyer">Recevoir un code de connexion</button>
+      <button class="btn lg" data-act="code-deja">J'ai déjà un code</button>
       ${S.erreurConnexion ? `<div class="pill crit bloc">${esc(S.erreurConnexion)}</div>` : ''}
-      <div class="aide">Pas de mot de passe : un code à six chiffres arrive par e-mail et vaut connexion. Une adresse non invitée ne peut pas créer de compte.</div>`;
+      <div class="aide">Pas de mot de passe : un code à six chiffres vaut connexion. Si le mail n'arrive pas, demandez un code à Adrien — il peut en fabriquer un depuis l'application. Une adresse non invitée ne peut pas créer de compte.</div>`;
   }
   return `<div class="login"><div class="side"><div class="serif">Récap<br>prospection</div>
       <div class="notes"><span>Accès réservé à l'équipe du Cabinet Ekinox.</span><span>Chaque connexion est journalisée. Données hébergées à Paris.</span></div></div>
@@ -817,9 +820,11 @@ export function vueAdmin(S) {
           <td><select class="mini" data-role="${esc(u.id)}"${u.id === S.moi?.id ? ' disabled' : ''}>
             <option value="member"${u.role === 'member' ? ' selected' : ''}>membre</option>
             <option value="admin"${u.role === 'admin' ? ' selected' : ''}>admin</option></select></td>
-          <td class="tr pr0"><button class="switch" role="switch" aria-checked="${u.active}" data-bascule="${esc(u.id)}"${u.id === S.moi?.id ? ' disabled' : ''} aria-label="activer ${esc(u.display_name)}"></button></td></tr>`).join('')}
+          <td class="tr pr0"><button class="btn sm" data-act="codeConnexion" data-email="${esc(u.email)}">Code</button>
+            <button class="switch" role="switch" aria-checked="${u.active}" data-bascule="${esc(u.id)}"${u.id === S.moi?.id ? ' disabled' : ''} aria-label="activer ${esc(u.display_name)}"></button></td></tr>`).join('')}
         </tbody></table>
-      <div class="row2"><input id="invite" type="email" placeholder="prenom@cabinet-ekinox.fr"><button class="btn primary" data-act="inviter">Inviter</button></div></section>
+      <div class="row2"><input id="invite" type="email" placeholder="prenom@cabinet-ekinox.fr"><button class="btn primary" data-act="inviter">Inviter</button></div>
+      <div class="note"><b>Code</b> fabrique un code de connexion à six chiffres et vous l'affiche, sans passer par le mail — l'expéditeur de Supabase est plafonné à deux messages par heure, et les antivirus de messagerie consomment les liens avant leur destinataire. Vous transmettez le code par Slack ou par SMS ; la personne clique « J'ai déjà un code » sur l'écran de connexion. Valable une heure, une seule fois.</div></section>
 
     <section class="card"><h2>Lignes Ringover</h2>
       <div class="intro">Le nom affiché pour chaque ligne Ringover. À corriger quand une ligne change de main.</div>

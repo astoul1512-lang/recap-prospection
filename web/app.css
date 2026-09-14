@@ -591,3 +591,11 @@ pre.transcript {
   .chips.soc .rech { margin-left: 0; width: 100%; }
   .trois { grid-template-columns: 1fr; }
 }
+
+/* Le code de connexion fabriqué depuis l'écran d'administration : il est fait
+   pour être lu à voix haute ou recopié dans Slack, pas pour être discret. */
+.codegeant {
+  font-family: var(--font-display); font-size: 40px; letter-spacing: .18em; text-align: center;
+  margin: 14px 0; padding: 12px; background: var(--surface-3); border: 1px solid var(--hair);
+  border-radius: var(--radius); user-select: all;
+}

@@ -34,11 +34,12 @@ Deno.test("identifiants : un uuid mal formé ne doit jamais atteindre la base", 
   estEgal(uuidValide(null), null);
 });
 
-Deno.test("routage : seules les cinq actions prévues existent", () => {
+Deno.test("routage : seules les actions prévues existent", () => {
   const base = "https://exemple.functions.supabase.co/admin";
   estEgal(actionDemandee(`${base}/invite`), "invite");
   estEgal(actionDemandee(`${base}/deactivate`), "deactivate");
   estEgal(actionDemandee(`${base}/webhook-test`), "webhook-test");
+  estEgal(actionDemandee(`${base}/login-code`), "login-code", "code de connexion fabriqué à la main");
   estEgal(actionDemandee(`${base}/invite/`), "invite", "barre oblique finale tolérée");
   estEgal(actionDemandee(`${base}/erase?x=1`), "erase", "les paramètres n'entrent pas dans le routage");
   estEgal(actionDemandee(base), null, "sans action");
