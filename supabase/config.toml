@@ -24,3 +24,6 @@ verify_jwt = true
 
 [functions.fetch-transcript]
 verify_jwt = true
+
+[functions.jarvi-sync]
+verify_jwt = true

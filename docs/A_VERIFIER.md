@@ -7,6 +7,33 @@
 | 3 | Paramètres exacts de `GET /v2/calls` (dates, pagination `last_id_call`, `limit_count`) | https://developer.ringover.com/ + un appel réel | ✅ **résolu le 4 septembre 2026** — trois noms de `SPECS.md` étaient faux : voir `docs/ringover-api.md` |
 | 4 | API Modjo : lister les appels par fenêtre de temps et numéro ; récupérer transcription et résumé | https://api.modjo.ai/v2/docs + un appel réel avec la clé `modjo` | ⤳ **déplacé** : plus aucun code serveur n'appelle Modjo, c'est la tâche Claude planifiée qui s'en charge par son connecteur (décision D1) |
 | 5 | Format `phoneNumbers[].canonicalNumber` renvoyé par Jarvi (E.164 ?) | un `GET /rest/v2/profiles?where=…` sur un contact connu | ⚠️ **contourné** — le code ne suppose plus aucun format : voir « Rapprochement des numéros » ci-dessous. À confirmer au premier vrai classement. |
+| 6 | Forme exacte de `GET /rest/v2/companies` dans l'API publique Jarvi : `assignees` y est-il exposé, et `where` accepte-t-il un filtre sur une relation ? | `GET /functions/v1/jarvi-sync?mode=sonde` avec la clé réelle | ⚠️ **ouvert** — voir « La sonde de `jarvi-sync` » ci-dessous |
+
+## La sonde de `jarvi-sync` (ligne 6)
+
+Le modèle de données est connu — relevé le 14 septembre 2026 par le connecteur
+Jarvi : `companies.assignees[].user.displayName` porte le responsable, et
+`companies.fieldsValues[]` le secteur. Ce qui n'est **pas** connu, c'est si
+l'API publique REST expose les mêmes relations que l'API interne, et si son
+paramètre `where` accepte un filtre sur `assignees`.
+
+Coder à l'aveugle ici a un coût précis, et c'est exactement le défaut de D7 :
+un champ absent ne lève aucune erreur. `assignees` manquant donnerait zéro
+prospecteur reconnu sur toutes les sociétés — la synchronisation tournerait
+sans rien écrire, et le journal afficherait « 0 société retenue », un
+résultat parfaitement plausible qu'on mettrait des jours à soupçonner.
+
+D'où `?mode=sonde` : elle lit trois sociétés, n'écrit rien, et renvoie la
+liste des **clés** présentes (jamais les valeurs — rien de nominatif dans un
+journal), plus trois réponses directes : `assignees` est-il un tableau, la
+société se lit-elle, le secteur est-il trouvé.
+
+Tant que la sonde n'est pas verte, la tâche planifiée ne peut rien casser :
+sans prospecteur reconnu, elle n'écrit aucune ligne.
+
+Si `where` refuse le filtre sur `assignees`, le repli est déjà en place :
+lire toutes les sociétés et filtrer dans la fonction — c'est déjà ce que fait
+`lireSociete`, le filtre serveur n'est qu'une économie de bande passante.
 
 ## Rapprochement des numéros (ligne 5)
 

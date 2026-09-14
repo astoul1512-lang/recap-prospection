@@ -205,6 +205,108 @@ export async function appelsSansTranscription(
   return (await corpsJson(r)) as Record<string, unknown>[];
 }
 
+// --- Sociétés et contacts (copie de travail de la partie CRM de Jarvi) -------
+
+// Où en est le tour de synchronisation. Une commodité, jamais une source de
+// vérité : remis à zéro, le tour recommence et tout est réécrit à l'identique.
+export async function lireCurseur(nom: string): Promise<number> {
+  const r = await rest(`sync_state?nom=eq.${encodeURIComponent(nom)}&select=valeur&limit=1`);
+  if (!r.ok) return 0;
+  const ligne = (await corpsJson(r))[0] as Record<string, unknown> | undefined;
+  return typeof ligne?.valeur === "number" ? ligne.valeur : 0;
+}
+
+export async function ecrireCurseur(nom: string, valeur: number): Promise<boolean> {
+  const r = await rest("sync_state?on_conflict=nom", {
+    method: "POST",
+    body: JSON.stringify({ nom, valeur, updated_at: new Date().toISOString() }),
+    headers: { Prefer: "resolution=merge-duplicates,return=minimal" },
+  });
+  return r.ok;
+}
+
+export async function enregistrerSocietes(lignes: Record<string, unknown>[]): Promise<boolean> {
+  if (!lignes.length) return true;
+  const r = await rest("companies?on_conflict=jarvi_company_id", {
+    method: "POST",
+    body: JSON.stringify(lignes),
+    headers: { Prefer: "resolution=merge-duplicates,return=minimal" },
+  });
+  return r.ok;
+}
+
+export async function enregistrerContacts(lignes: Record<string, unknown>[]): Promise<boolean> {
+  if (!lignes.length) return true;
+  const r = await rest("contacts?on_conflict=jarvi_profile_id", {
+    method: "POST",
+    body: JSON.stringify(lignes),
+    headers: { Prefer: "resolution=merge-duplicates,return=minimal" },
+  });
+  return r.ok;
+}
+
+// Les responsables d'une société sont remplacés en bloc : un responsable
+// retiré dans Jarvi doit disparaître, et une ligne orpheline ferait apparaître
+// le compte dans la liste de quelqu'un qui ne l'a plus.
+export async function remplacerProspecteurs(
+  societeId: string,
+  prospecteurs: string[],
+): Promise<boolean> {
+  const cle = `jarvi_company_id=eq.${encodeURIComponent(societeId)}`;
+  const suppression = await rest(`company_owners?${cle}`, {
+    method: "DELETE",
+    headers: { Prefer: "return=minimal" },
+  });
+  if (!suppression.ok) return false;
+  if (!prospecteurs.length) return true;
+  const r = await rest("company_owners", {
+    method: "POST",
+    body: JSON.stringify(prospecteurs.map((p) => ({
+      jarvi_company_id: societeId,
+      prospecteur: p,
+    }))),
+    headers: { Prefer: "return=minimal" },
+  });
+  return r.ok;
+}
+
+// Disparu de Jarvi : marqué, jamais supprimé. Les appels qui le désignent
+// gardent leur fiche, et un contact réactivé retrouve son historique.
+export async function archiverContactsAbsents(
+  societeId: string,
+  presents: string[],
+): Promise<number> {
+  const liste = presents.map((i) => `"${i.replace(/"/g, "")}"`).join(",");
+  const exclusion = presents.length
+    ? `&jarvi_profile_id=not.in.(${encodeURIComponent(liste)})`
+    : "";
+  const r = await rest(
+    `contacts?jarvi_company_id=eq.${encodeURIComponent(societeId)}` +
+      `&archived_at=is.null${exclusion}`,
+    {
+      method: "PATCH",
+      body: JSON.stringify({ archived_at: new Date().toISOString() }),
+      headers: { Prefer: "return=representation" },
+    },
+  );
+  if (!r.ok) return 0;
+  return (await corpsJson(r)).length;
+}
+
+// Rapprochement appel ↔ contact : d'abord l'identifiant de profil déjà posé
+// par `classify`, sinon le numéro. Le faire en SQL plutôt qu'en boucle évite
+// de rapatrier des milliers d'appels dans la fonction pour les recomparer.
+export async function rattacherAppels(): Promise<number> {
+  const r = await rest("rpc/rattacher_appels_contacts", {
+    method: "POST",
+    body: "{}",
+  });
+  if (!r.ok) return 0;
+  const corps = await corpsJson(r);
+  const valeur = corps[0];
+  return typeof valeur === "number" ? valeur : 0;
+}
+
 // --- Journal des corrections et des usages -----------------------------------
 
 export async function journaliserCorrection(ligne: Record<string, unknown>): Promise<boolean> {
