@@ -418,7 +418,8 @@ function brancher() {
     if (e.currentTarget.open) chargerTranscription();
   });
   sur('#code', 'keydown', (e) => { if (e.key === 'Enter') agir(S.etapeConnexion === 'mfa' ? 'mfa-verifier' : 'mfa-inscrire'); });
-  sur('#em', 'keydown', (e) => { if (e.key === 'Enter') agir('lien'); });
+  sur('#codecx', 'keydown', (e) => { if (e.key === 'Enter') agir('code-verifier'); });
+  sur('#em', 'keydown', (e) => { if (e.key === 'Enter') agir('code-envoyer'); });
 }
 
 // --- Sociétés ---------------------------------------------------------------------
@@ -590,8 +591,11 @@ async function agir(action, bouton) {
     : null;
 
   switch (action) {
-    case 'lien': {
-      const email = (document.getElementById('em')?.value || '').trim().toLowerCase();
+    case 'renvoyer':
+    case 'code-envoyer': {
+      const email = action === 'renvoyer'
+        ? S.email
+        : (document.getElementById('em')?.value || '').trim().toLowerCase();
       S.email = email;
       if (!email.endsWith('@cabinet-ekinox.fr')) {
         S.erreurConnexion = "Cette adresse n'est pas une adresse du cabinet.";
@@ -599,22 +603,43 @@ async function agir(action, bouton) {
         return;
       }
       try {
-        await api.envoyerLienConnexion(email);
+        await api.envoyerCodeConnexion(email);
         S.erreurConnexion = '';
         S.etapeConnexion = 'envoye';
+        if (action === 'renvoyer') toast('Un nouveau code vient de partir.');
       } catch (erreur) {
-        // Supabase ne dit pas si l'adresse existe — et c'est voulu.
-        S.erreurConnexion = "Envoi impossible. Si cette adresse n'a pas été invitée, demandez l'accès à Adrien.";
         console.error(erreur);
+        // Le plafond d'envoi est la panne la plus fréquente, et la seule que
+        // l'utilisateur peut résoudre lui-même en patientant. La confondre
+        // avec « adresse inconnue » l'enverrait demander un accès qu'il a
+        // déjà. Supabase ne dit pas, en revanche, si l'adresse existe — et
+        // c'est voulu.
+        S.erreurConnexion = erreur?.status === 429
+          || String(erreur?.code || '').includes('rate_limit')
+          ? "Trop de demandes de code viennent d'être envoyées. Attendez une heure, ou prévenez Adrien si cela se répète."
+          : "Envoi impossible. Si cette adresse n'a pas été invitée, demandez l'accès à Adrien.";
       }
       rendre();
       return;
     }
-    case 'google':
+    case 'code-verifier': {
+      const saisi = (document.getElementById('codecx')?.value || '').replace(/\s/g, '');
+      if (saisi.length < 6) {
+        S.erreurConnexion = 'Le code fait six chiffres.';
+        rendre();
+        return;
+      }
       try {
-        await api.connexionGoogle();
-      } catch (erreur) { echec('Connexion Google impossible', erreur); }
+        await api.verifierCodeConnexion(S.email, saisi);
+        S.erreurConnexion = '';
+        await demarrerSession();
+      } catch (erreur) {
+        console.error(erreur);
+        S.erreurConnexion = 'Code refusé : il est faux, périmé, ou déjà utilisé. Demandez-en un nouveau.';
+        rendre();
+      }
       return;
+    }
     case 'retour':
       S.etapeConnexion = 'adresse';
       S.erreurConnexion = '';
@@ -1058,12 +1083,26 @@ async function demarrer() {
       rendre();
     }
   });
+  // Le lien du mail dépose un code dans l'adresse. Il peut échouer pour deux
+  // raisons qu'aucun message ne signalait : il a déjà été consommé — les
+  // protections de messagerie ouvrent les liens avant l'utilisateur pour les
+  // analyser — ou il a été ouvert dans un autre navigateur que celui qui l'a
+  // demandé, où la preuve de la demande n'existe pas. Dans les deux cas on
+  // retombait sur l'écran de saisie, muet, exactement comme si on n'avait
+  // rien fait.
+  const adresse = new URLSearchParams(location.search);
+  const ancre = new URLSearchParams(location.hash.slice(1));
+  const venaitDuLien = adresse.has('code') || adresse.has('error') || ancre.has('error');
   try {
     await demarrerSession();
   } catch (erreur) {
     console.error(erreur);
     S.phase = 'connexion';
     S.erreurConnexion = 'La connexion au serveur a échoué. Réessayez dans un instant.';
+    rendre();
+  }
+  if (venaitDuLien && S.phase === 'connexion' && S.etapeConnexion === 'adresse') {
+    S.erreurConnexion = 'Ce lien de connexion ne fonctionne plus : il a déjà été ouvert, ou il l’a été sur un autre appareil que celui qui l’a demandé. Redemandez un code ci-dessous — un code marche depuis n’importe où.';
     rendre();
   }
   // Le lien magique dépose un code dans l'adresse : une fois la session ouverte,

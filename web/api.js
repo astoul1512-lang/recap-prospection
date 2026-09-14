@@ -30,7 +30,13 @@ export function db() {
 
 export const REDIRECTION = `${location.origin}${location.pathname}`;
 
-export async function envoyerLienConnexion(email) {
+// Le même appel envoie le code à six chiffres et le lien : c'est le gabarit de
+// mail, côté Supabase, qui décide de ce qui est affiché. On garde les deux —
+// mais c'est le code qui fait foi. Un lien de connexion est à usage unique, et
+// la protection des liens de Microsoft 365 l'ouvre avant l'utilisateur pour
+// l'analyser : il est grillé avant le clic humain. Un code se recopie à la
+// main, d'un appareil à l'autre, et aucun antivirus ne le consomme.
+export async function envoyerCodeConnexion(email) {
   // `shouldCreateUser: false` : une adresse non invitée ne doit pas provoquer
   // la création d'un compte, même vide. C'est la deuxième barrière après le
   // déclencheur en base.
@@ -41,11 +47,8 @@ export async function envoyerLienConnexion(email) {
   if (error) throw error;
 }
 
-export async function connexionGoogle() {
-  const { error } = await db().auth.signInWithOAuth({
-    provider: 'google',
-    options: { redirectTo: REDIRECTION, queryParams: { hd: 'cabinet-ekinox.fr' } },
-  });
+export async function verifierCodeConnexion(email, token) {
+  const { error } = await db().auth.verifyOtp({ email, token, type: 'email' });
   if (error) throw error;
 }
 

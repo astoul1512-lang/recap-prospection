@@ -71,7 +71,7 @@ Anthropic◀──Messages API ────────────────�
 Slack    ◀──webhook entrant ──────── edge fn notify-slack (08:45)
 
 Application web (GitHub Pages, statique) ──supabase-js + JWT──▶ PostgREST (RLS) / edge fns
-Supabase Auth : invitation seule, lien magique + Google Workspace, MFA admin
+Supabase Auth : invitation seule, code à six chiffres par e-mail (D11), MFA admin
 ```
 
 ### 2.1 Stack
@@ -153,8 +153,8 @@ Les fonctions les lisent avec `Deno.env.get('ringover')` etc. `SUPABASE_URL`, `S
 ### 3.3 Réglages manuels du dashboard Supabase (lot 0, une fois)
 
 1. Authentication → Sign In / Providers → **désactiver « Allow new users to sign up »**.
-2. Authentication → Providers → Email : activer, **magic link** ; désactiver « confirm email » n'est pas nécessaire (invitation).
-3. Authentication → Providers → Google : Client ID / secret d'un client OAuth Google Cloud (écran de consentement interne, domaine `cabinet-ekinox.fr`). Facultatif au lot 0.
+2. Authentication → Providers → Email : activer, **magic link** ; désactiver « confirm email » n'est pas nécessaire (invitation). Le gabarit *Magic Link* doit contenir `{{ .Token }}` : c'est lui qui affiche le code à six chiffres (D11). Authentication → Emails → SMTP : un vrai serveur d'envoi est indispensable, l'expéditeur intégré est plafonné à quelques mails par heure.
+3. Authentication → Providers → Google : non activé, et le bouton a été retiré de l'écran de connexion (D11). À rouvrir le jour où un client OAuth Google Cloud existe.
 4. Authentication → URL Configuration : Site URL `https://astoul1512-lang.github.io/recap-prospection/`, Redirect URLs idem + `http://localhost:*` pour le dev.
 5. Authentication → MFA : activer TOTP.
 6. Auth → Sessions : durée du JWT 1 h, refresh token rotation activée, inactivity timeout 12 h.
@@ -354,7 +354,7 @@ Webhook entrant (URL dans `slack_webhook`), message en blocs `mrkdwn`, une ligne
 
 ### 7.2 Authentification (front)
 
-- Écran de connexion : email → `signInWithOtp({email, options:{shouldCreateUser:false, emailRedirectTo}})` ; bouton Google → `signInWithOAuth({provider:'google', options:{queryParams:{hd:'cabinet-ekinox.fr'}}})`. Flux PKCE.
+- Écran de connexion, en deux temps : email → `signInWithOtp({email, options:{shouldCreateUser:false, emailRedirectTo}})`, puis code à six chiffres → `verifyOtp({email, token, type:'email'})` (D11). Flux PKCE. Trois échecs nommés : plafond d'envoi (429), code refusé, lien déjà ouvert ou ouvert sur un autre appareil.
 - Après session : charger `app_users` (sa ligne) ; si absent/inactif → écran « Adresse non invitée, demandez l'accès à Adrien » + `signOut()`.
 - Admin : si `aal` ≠ `aal2` → écran d'inscription/vérification TOTP (`mfa.enroll` / `mfa.challenge` / `mfa.verify`) avant d'accéder à `#admin`.
 - Déconnexion, expiration : sur `SIGNED_OUT`/`TOKEN_REFRESHED` échoué → retour à `#login` sans « flash » de données (l'app ne rend rien tant que la session n'est pas vérifiée).

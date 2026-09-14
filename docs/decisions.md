@@ -560,3 +560,57 @@ pas — deux requêtes de plus par appel inconnu, au plus. Le cache de trente
 jours est volontairement court-circuité sur ces passages : il répondrait
 exactement ce qu'il répondait hier, et c'est précisément ce qu'on cherche à ne
 pas croire.
+
+---
+
+## D11 — On se connecte avec un code, pas avec un lien
+
+**14 septembre 2026.** Alexandre Mesnier, invité en membre, compte bien créé et
+actif, reçoit le mail de connexion, clique, et retombe sur l'écran qui demande
+son adresse. Trois causes distinctes, et une seule conclusion.
+
+### Ce qui a été mesuré
+
+1. **Le service d'envoi de mails était saturé.** Un appel direct à
+   `POST /auth/v1/otp` répond `429 over_email_send_rate_limit`. L'expéditeur
+   intégré de Supabase est limité à quelques mails par heure et n'est pas prévu
+   pour la production. Tant qu'il est plein, aucune demande n'aboutit — et le
+   front n'en disait rien.
+2. **Le lien est à usage unique, et la messagerie le consomme.** Les
+   protections de liens de Microsoft 365 ouvrent les URL avant l'utilisateur
+   pour les analyser. Le lien est donc grillé avant le clic humain. S'y ajoute
+   le flux PKCE : la preuve de la demande est écrite dans le navigateur qui a
+   demandé le lien, donc l'ouvrir ailleurs échoue aussi, silencieusement.
+3. **Le bouton « Continuer avec Google Workspace » ne pouvait pas marcher** :
+   `provider is not enabled` sur le projet. Il échouait pour tout le monde
+   depuis le premier jour.
+
+### La décision
+
+**Le code à six chiffres devient le chemin normal.** Le même appel Supabase
+envoie code et lien ; c'est le gabarit de mail qui décide de ce qu'on affiche.
+Le lien reste dans le mail, en secours, mais l'écran de connexion demande le
+code — comme le second facteur des administrateurs, déjà en place.
+
+Un code ne se consomme pas à la lecture, traverse les appareils, et se recopie
+depuis un téléphone quand le mail est ouvert sur l'ordinateur. Aucune de ces
+trois propriétés n'est vraie d'un lien.
+
+**Le bouton Google est retiré.** Un bouton qui échoue sur un écran de connexion
+coûte plus cher qu'une option en moins : il fait douter du reste. Il reviendra
+le jour où le fournisseur sera réellement activé, pas avant.
+
+**Et les trois échecs parlent.** Le plafond d'envoi, le code refusé, le lien
+déjà ouvert : chacun a désormais sa phrase. C'est la même règle que partout
+ici — un écran vide ne doit jamais être la seule façon d'apprendre qu'une
+chose a échoué.
+
+### Ce que ça ne règle pas
+
+Le plafond d'envoi reste entier tant qu'un vrai serveur d'envoi n'est pas
+branché sur le projet : le code part par le même canal que le lien. La
+correction du front rend la panne lisible, elle ne la supprime pas.
+
+Et le code n'apparaît dans le mail que si le gabarit Supabase contient
+`{{ .Token }}`. Sans cette ligne, le mail ne montre qu'un lien et l'écran
+demande un code que personne ne peut lire.

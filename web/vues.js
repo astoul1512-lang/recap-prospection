@@ -32,8 +32,6 @@ const ACT = {
   building: '<svg viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="1"></rect><path d="M9 7h2M13 7h2M9 11h2M13 11h2M9 15h2M13 15h2M10 21v-3h4v3"></path></svg>',
 };
 
-const GOOGLE = '<svg viewBox="0 0 24 24" class="g"><path d="M21.6 12.2c0-.7-.1-1.3-.2-1.9H12v3.7h5.4a4.6 4.6 0 0 1-2 3v2.5h3.2c1.9-1.7 3-4.3 3-7.3z" fill="#4285F4"/><path d="M12 22c2.7 0 5-.9 6.6-2.4l-3.2-2.5c-.9.6-2 1-3.4 1-2.6 0-4.8-1.8-5.6-4.1H3.1v2.6A10 10 0 0 0 12 22z" fill="#34A853"/><path d="M6.4 14a6 6 0 0 1 0-3.9V7.5H3.1a10 10 0 0 0 0 9z" fill="#FBBC05"/><path d="M12 6c1.5 0 2.8.5 3.8 1.5l2.8-2.8A10 10 0 0 0 3.1 7.5l3.3 2.6C7.2 7.8 9.4 6 12 6z" fill="#EA4335"/></svg>';
-
 // --- Fragments partagés ------------------------------------------------------
 
 export function qui(c) {
@@ -85,7 +83,16 @@ function etiquetteEtat(c) {
 export function vueConnexion(S) {
   let etapes;
   if (S.etapeConnexion === 'envoye') {
-    etapes = `<div class="pill good bloc">Lien envoyé à <b>${esc(S.email)}</b>. Ouvrez-le depuis votre boîte mail, sur cet appareil de préférence (valable une heure).</div>
+    // Le code, pas le lien : le lien reste dans le mail en secours, mais il
+    // est à usage unique et les antivirus de messagerie l'ouvrent avant
+    // l'utilisateur. Le code, lui, se recopie depuis n'importe quel appareil.
+    etapes = `<div class="pill good bloc">Code envoyé à <b>${esc(S.email)}</b>. Il est dans le mail, en gros caractères, et reste valable une heure.</div>
+      <div class="field"><label for="codecx">Code à six chiffres</label>
+        <input id="codecx" inputmode="numeric" maxlength="6" autocomplete="one-time-code" autofocus>
+        <span class="aide">Le mail contient aussi un lien. Il marche, mais seulement sur cet appareil et une seule fois — le code est plus sûr.</span></div>
+      ${S.erreurConnexion ? `<div class="pill crit bloc">${esc(S.erreurConnexion)}</div>` : ''}
+      <button class="btn primary lg" data-act="code-verifier">Se connecter</button>
+      <button class="btn lg" data-act="renvoyer">Renvoyer un code</button>
       <button class="btn lg" data-act="retour">Changer d'adresse</button>`;
   } else if (S.etapeConnexion === 'mfa-inscription') {
     etapes = `<div class="field"><label>Double authentification (obligatoire pour les administrateurs)</label>
@@ -104,11 +111,9 @@ export function vueConnexion(S) {
       <button class="btn lg" data-act="deconnexion">Se déconnecter</button>`;
   } else {
     etapes = `<div class="field"><label for="em">Adresse e-mail</label><input id="em" type="email" value="${esc(S.email)}" autocomplete="email" placeholder="prenom@cabinet-ekinox.fr"></div>
-      <button class="btn primary lg" data-act="lien">Recevoir un lien de connexion</button>
-      <div class="sep"><i></i>ou<i></i></div>
-      <button class="btn lg" data-act="google">${GOOGLE}Continuer avec Google Workspace</button>
+      <button class="btn primary lg" data-act="code-envoyer">Recevoir un code de connexion</button>
       ${S.erreurConnexion ? `<div class="pill crit bloc">${esc(S.erreurConnexion)}</div>` : ''}
-      <div class="aide">Pas de mot de passe : le lien reçu par e-mail vaut connexion. Une adresse non invitée ne peut pas créer de compte.</div>`;
+      <div class="aide">Pas de mot de passe : un code à six chiffres arrive par e-mail et vaut connexion. Une adresse non invitée ne peut pas créer de compte.</div>`;
   }
   return `<div class="login"><div class="side"><div class="serif">Récap<br>prospection</div>
       <div class="notes"><span>Accès réservé à l'équipe du Cabinet Ekinox.</span><span>Chaque connexion est journalisée. Données hébergées à Paris.</span></div></div>
