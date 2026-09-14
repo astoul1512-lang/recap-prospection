@@ -19,7 +19,7 @@ lot « Sociétés »**. Le lot en demandait deux ; aucun n'est nécessaire.
 
 | Donnée | Où la lire | Usage |
 |---|---|---|
-| **Responsable** | champ natif `assignees[].user.displayName` | Le prospecteur. **Sans responsable, la société n'apparaît pas dans la page Sociétés.** Plusieurs responsables possibles : le compte apparaît alors dans la liste de chacun. |
+| **Responsable** | champ natif `assignees[].user.displayName` | Le prospecteur, **à condition d'être Martin, Rémy ou Adrien**. Sans responsable, ou avec un responsable qui ne prospecte pas, la société n'apparaît pas dans la page Sociétés. Plusieurs responsables possibles : le compte apparaît dans la liste de chacun. |
 | Secteur activité | champ personnalisé `3665fb39-820b-4f19-a876-0899ec1e7a4d` (choix multiple) | Alimente `companies.sector`. |
 
 Les autres champs société existants et non utilisés ici : Priorisée, À enrichir,
@@ -43,14 +43,18 @@ sans accent (`Remy Basdim`), l'application affiche le prénom accentué (`Rémy`
 
 Les trois qui prospectent aujourd'hui, arrêté avec Adrien le 13 septembre 2026 :
 
-| Affiché | Responsable Jarvi | Ligne Ringover | Appels enregistrés |
-|---|---|---|---|
-| `Rémy` | Remy Basdim | Rémy Basdim | 227 |
-| `Adrien` | Adrien Astoul | Adrien Astoul | 104 |
-| `Martin` | Martin Benyekkou | Martin Benyekkou | 3 |
+| Affiché | Responsable Jarvi | Ligne Ringover | Appels | Sociétés dont il est responsable |
+|---|---|---|---|---|
+| `Rémy` | Remy Basdim | Rémy Basdim | 227 | 387 |
+| `Adrien` | Adrien Astoul | Adrien Astoul | 104 | 113 |
+| `Martin` | Martin Benyekkou | Martin Benyekkou | 3 | 165 |
 
-Julien Fravallo (153 appels) ne fait plus partie de l'effectif ; Alexandre
-Mesnier (59 appels) ne prospecte pas. Leurs appels passés restent dans le
-rapport — la liste ci-dessus dit qui **attribue** des comptes, pas qui a
-téléphoné. La page n'affiche donc pas de liste de prospecteurs en dur : elle
-prend les responsables réellement rencontrés dans les données.
+**Cette liste est un filtre, pas un affichage.** Elle est appliquée à la
+synchronisation : une société dont le responsable n'est aucun des trois n'entre
+pas en base. Sans elle, la page afficherait 1 971 sociétés — Julien Fravallo
+(parti du cabinet) en porte 513, Alexandre Mesnier (qui ne prospecte pas) 918.
+Le champ `assignees` de Jarvi est un rangement historique, pas une attribution
+de prospection : relevé du 14 septembre 2026, voir `docs/decisions.md` D9.
+
+Leurs appels passés restent dans le rapport : la liste dit qui **attribue** des
+comptes, pas qui a téléphoné.

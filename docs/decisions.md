@@ -429,6 +429,32 @@ Vérifié avant de décider, sur trois des neuf sociétés de la maquette :
 Trois sur trois. Le champ personnalisé aurait recopié à la main une information
 déjà présente et déjà tenue à jour.
 
+### Ce que cette vérification n'a pas vu — corrigé le 14 septembre 2026
+
+Trois sociétés sur neuf, c'était vérifier que le responsable **correspond**. Ce
+n'était pas vérifier qu'il **délimite**. À l'échelle de la base, il ne délimite
+rien : 1 971 sociétés sur 2 119 ont un responsable.
+
+| Responsable | Sociétés |
+|---|---|
+| Alexandre | 918 |
+| Julien | 513 |
+| Rémy | 387 |
+| Martin | 165 |
+| Adrien | 113 |
+
+C'est un champ de rangement historique, pas une attribution de prospection.
+Julien a quitté le cabinet, Alexandre ne prospecte pas, et à eux deux ils
+portent 1 431 comptes : la page aurait affiché deux mille lignes vides.
+
+**La règle retenue, arbitrée par Adrien :** une société entre dans la page si
+son responsable est **Martin, Rémy ou Adrien** — environ 665 comptes. Les
+autres n'existent pas pour l'application.
+
+La leçon est la même qu'en D8 : vérifier sur un échantillon dit si une
+correspondance tient, jamais si un périmètre est le bon. Il fallait compter
+avant de conclure.
+
 ### Pourquoi
 
 Une donnée saisie deux fois finit par diverger, et c'est toujours la copie qu'on
@@ -438,6 +464,10 @@ tout de suite au lieu d'attendre une manipulation.
 
 ### Les deux conséquences
 
+0. **Seuls trois responsables comptent** — Martin, Rémy, Adrien (voir
+   ci-dessus). La liste n'est pas écrite en dur dans le front : elle est
+   appliquée à la synchronisation, donc une société dont le responsable change
+   pour quelqu'un d'autre disparaît de la page au passage suivant.
 1. **Une société peut avoir plusieurs responsables.** Arbitré par Adrien : le
    compte apparaît **dans la liste de chacun**. `v_comptes` est donc une ligne
    par couple *(société × prospecteur)*, pas une ligne par société — et la

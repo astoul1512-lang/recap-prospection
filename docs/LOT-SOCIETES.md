@@ -12,7 +12,7 @@ Règles inchangées : `CLAUDE.md` (Adrien n'est pas développeur, tu commits et 
 
 La version initiale du lot demandait un champ personnalisé « Prospecteur » sur les sociétés. **Abandonné** : Jarvi porte déjà un **responsable** natif sur la fiche société (`assignees`), déjà renseigné, qui dit exactement la même chose. Vérification et raisons dans `docs/decisions.md` **D9**.
 
-- Le **prospecteur d'un compte = son responsable dans Jarvi**.
+- Le **prospecteur d'un compte = son responsable dans Jarvi**, à condition que ce responsable soit **Martin, Rémy ou Adrien**. Les comptes d'Alexandre (918) et de Julien (513), qui ne prospectent pas, n'entrent pas dans la page — sans ce filtre elle afficherait 1 971 sociétés au lieu d'environ 665.
 - Une société **sans responsable n'apparaît pas** dans la page.
 - Une société à **plusieurs responsables apparaît dans la liste de chacun** : `v_comptes` est une ligne par couple *(société × prospecteur)*, et la couverture se calcule pour chacun avec ses propres appels.
 - Pas de champ « Opérationnel » non plus : Adrien appelle « opérationnels » l'ensemble des contacts rattachés à la société dans Jarvi. Tous comptent.
