@@ -86,6 +86,28 @@ export function heureFR(instantISO) {
   }).format(d);
 }
 
+// Le jour civil d'un instant, à Paris. `slice(0, 10)` sur une date ISO donnerait
+// le jour UTC : un appel de 23 h 30 en été serait compté le lendemain.
+export function jourDe(instantISO) {
+  if (!instantISO) return '';
+  const d = new Date(instantISO);
+  if (Number.isNaN(d.getTime())) return '';
+  return new Intl.DateTimeFormat('fr-CA', { timeZone: 'Europe/Paris' }).format(d);
+}
+
+export function joursDepuis(instantISO, aujourdHui) {
+  const j = jourDe(instantISO);
+  if (!j) return null;
+  return Math.round((midi(aujourdHui) - midi(j)) / 86400000);
+}
+
+export function ilYa(n) {
+  if (n === null) return '';
+  if (n <= 0) return "aujourd'hui";
+  if (n === 1) return 'hier';
+  return `il y a ${n} j`;
+}
+
 // --- Durées et proportions --------------------------------------------------
 
 export function duree(s) {

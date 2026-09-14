@@ -221,6 +221,64 @@ export async function reintegrer(callId) {
   return data === true;
 }
 
+// --- Sociétés -------------------------------------------------------------------
+
+// Une ligne par couple (société × prospecteur) : un compte partagé revient
+// deux fois, une fois dans la liste de chacun. Tout est déjà calculé par la
+// vue — le front ne fait qu'afficher, filtrer et trier.
+const CHAMPS_COMPTE = 'company_id, name, sector, jarvi_url, prospecteur, nb_contacts, '
+  + 'nb_contacts_appeles_par_proprietaire, nb_contacts_appeles_total, nb_contacts_avec_echange, '
+  + 'nb_appels_proprietaire, dernier_appel_proprietaire_at, dernier_appel_at, dernier_appel_par, '
+  + 'nb_appels, situations, situation_chaude, etat_des_lieux, etat_des_lieux_at, seuil_jours, '
+  + 'jours_depuis_dernier_appel, etat';
+
+export async function comptes() {
+  const { data, error } = await db().from('v_comptes').select(CHAMPS_COMPTE).order('name');
+  if (error) throw error;
+  return data ?? [];
+}
+
+export async function contactsDuCompte(companyId, prospecteur) {
+  const { data, error } = await db()
+    .from('v_compte_contacts')
+    .select('contact_id, contact_name, contact_role, jarvi_url, nb_appels, dernier_appel_at, '
+      + 'dernier_appel_par, derniere_situation, appele_par_proprietaire, a_echange')
+    .eq('company_id', companyId)
+    .eq('prospecteur', prospecteur)
+    .order('contact_name');
+  if (error) throw error;
+  return data ?? [];
+}
+
+export async function appelsDuCompte(companyId) {
+  const { data, error } = await db()
+    .from('v_compte_appels')
+    .select('call_id, contact_id, day, started_at, user_name, situation, summary, next_step, '
+      + 'record_link, echange, duration_s, status')
+    .eq('company_id', companyId)
+    .order('started_at', { ascending: false });
+  if (error) throw error;
+  return data ?? [];
+}
+
+// La recherche porte aussi sur les noms de contacts, et il y en a plusieurs
+// milliers : les charger tous pour filtrer dans le navigateur serait absurde.
+// On demande au serveur quelles sociétés ont un contact qui correspond.
+// Les caractères qui ont un sens dans un filtre PostgREST sont retirés : une
+// virgule tapée dans la case couperait la requête en deux.
+export async function comptesAyantUnContact(texte) {
+  const q = String(texte || '').replace(/[%*,().]/g, ' ').trim();
+  if (q.length < 2) return [];
+  const { data, error } = await db()
+    .from('contacts')
+    .select('jarvi_company_id')
+    .is('archived_at', null)
+    .ilike('name', `%${q}%`)
+    .limit(500);
+  if (error) throw error;
+  return [...new Set((data ?? []).map((l) => l.jarvi_company_id))];
+}
+
 export async function passagesTaches() {
   const { data, error } = await db().from('job_runs').select('name, ran_at, detail');
   if (error) throw error;

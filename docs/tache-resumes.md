@@ -125,7 +125,67 @@ apostrophes, et une apostrophe non échappée casse la requête.
 **Jamais dans `kind_manual` ni `outcome_manual`** : ces deux colonnes sont
 réservées aux humains, et ce sont elles qui priment sur la routine.
 
-## 3. Signer le passage — ne jamais sauter cette étape
+## 3. L'état des lieux des comptes
+
+La page **Sociétés** montre, pour chaque compte attribué à Martin, Rémy ou
+Adrien, une phrase qui dit où en est la prospection. Cette phrase n'est
+calculable par aucune requête : elle demande de relire les résumés du compte
+et d'en tirer le sens. C'est donc la routine qui l'écrit, au même passage.
+
+Demander la liste :
+
+```sql
+select jarvi_company_id, name, etat_des_lieux, etat_des_lieux_at,
+       dernier_appel_resume_at, nb_appels_resumes
+from public.v_comptes_a_resumer
+order by dernier_appel_resume_at desc
+limit 15;
+```
+
+La vue ne renvoie que les comptes dont **un appel a été résumé depuis la
+dernière rédaction** — ou qui n'en ont jamais eu. Même principe que
+`v_a_resumer` : on demande ce qui manque, jamais ce qui date d'hier.
+
+Pour chaque compte, relire ce qu'on sait de lui :
+
+```sql
+select ct.name as contact, ct.role, a.started_at, a.user_name,
+       a.situation, a.summary, a.next_step, a.echange
+from public.v_compte_appels a
+join public.contacts ct on ct.jarvi_profile_id = a.contact_id
+where a.company_id = '…'
+order by a.started_at desc;
+```
+
+Puis écrire :
+
+```sql
+update public.companies
+   set etat_des_lieux = $e$…$e$,
+       etat_des_lieux_at = now()
+ where jarvi_company_id = '…';
+```
+
+**La phrase porte sur la société, pas sur un prospecteur** : un compte partagé
+entre deux responsables n'a qu'un seul état des lieux. Deux phrases au plus,
+environ 300 caractères, factuelles : où en est la prospection, ce qui bloque,
+ce qui reste à tenter. Nommer les fonctions jamais appelées quand c'est le
+point saillant — c'est l'information qui fait agir.
+
+Deux exemples réels :
+
+> « Deux passages de Rémy (4 et 11 sept.) sur les quatre mêmes profils
+> techniques, aucun décroché : le compte n'a encore produit aucun échange. Les
+> fonctions RH et produit n'ont jamais été tentées. »
+
+> « Deux salariés joints le 11 sept. : Hello Watt ne passe pas par des cabinets
+> (job boards et cooptation) et ne recrute que des seniors. Le seul angle
+> restant est Thibaud Halpern, côté RH, jamais appelé. »
+
+Les mêmes interdits qu'au résumé : aucun candidat, aucune impression, rien qui
+ne soit dans les résumés relus.
+
+## 4. Signer le passage — ne jamais sauter cette étape
 
 ```sql
 select public.note_job_run('resumes', jsonb_build_object(
@@ -133,16 +193,18 @@ select public.note_job_run('resumes', jsonb_build_object(
   'qualifies', <appels sortis de la file>,
   'laisses_en_file', <appels non tranchés>,
   'candidats', <lignes renvoyées par la vue>,
+  'etats_des_lieux', <comptes réécrits à l'étape 3>,
   'passage', 'midi'));          -- ou 'soir'
 ```
 
 L'écran d'administration affiche cette date. Sans elle, une routine morte
 ressemble à une journée sans travail à faire.
 
-## 4. Rendre compte
+## 5. Rendre compte
 
 Un compte rendu court, en français simple, sans jargon : combien d'appels
-résumés, combien qualifiés, combien laissés à l'équipe et pourquoi. Signaler
+résumés, combien qualifiés, combien laissés à l'équipe et pourquoi, combien
+d'états des lieux réécrits. Signaler
 tout ce qui paraît anormal — une transcription vide, une situation impossible à
 trancher, un appel qui revient à chaque passage.
 

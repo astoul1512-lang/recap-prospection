@@ -7,7 +7,7 @@
 
 import {
   cap, clefSituation, dateFR, duree, dureeCourte, ecart, entonnoir, esc, estConversation,
-  texteResume,
+  ilYa, jourDe, joursDepuis, texteResume,
   etatAppel, ETIQUETTES, heureFR, initiales, joursSemaine, LIBELLE_GENRE, LIBELLE_ISSUE,
   lundiDe, numeroMasque, numeroSemaine, ORDRE_SITUATIONS, pourcent, SITUATIONS,
 } from './format.js';
@@ -16,6 +16,7 @@ export const ICON = {
   refresh: '<svg viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.3-5.7M20 4v5h-5"></path></svg>',
   jour: '<svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="17" rx="2"></rect><path d="M3 9h18M8 2v4M16 2v4"></path></svg>',
   semaine: '<svg viewBox="0 0 24 24"><path d="M4 19V9M10 19V5M16 19v-8M22 19H2"></path></svg>',
+  societes: '<svg viewBox="0 0 24 24"><rect x="3" y="8" width="8" height="13" rx="1"></rect><rect x="13" y="3" width="8" height="18" rx="1"></rect><path d="M6 12h2M6 16h2M16 7h2M16 11h2M16 15h2"></path></svg>',
   qualifier: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"></circle><path d="M12 8v4l3 2"></path></svg>',
   equipe: '<svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"></circle><path d="M2.5 20c0-3.6 2.9-6 6.5-6s6.5 2.4 6.5 6"></path><circle cx="17.5" cy="9" r="2.5"></circle><path d="M16 14.5c3 .2 5.5 2.3 5.5 5.5"></path></svg>',
   admin: '<svg viewBox="0 0 24 24"><rect x="4" y="11" width="16" height="10" rx="2"></rect><path d="M8 11V7a4 4 0 0 1 8 0v4"></path></svg>',
@@ -125,8 +126,8 @@ export function vueRefus(message) {
 
 export function coquille(S, corps, version) {
   const nq = S.nombreAQualifier || 0;
-  const pages = [['jour', 'Jour'], ['semaine', 'Semaine'], ['qualifier', 'À qualifier'],
-    ['equipe', 'Collaborateurs'], ['admin', 'Administration']]
+  const pages = [['jour', 'Jour'], ['semaine', 'Semaine'], ['societes', 'Sociétés'],
+    ['qualifier', 'À qualifier'], ['equipe', 'Collaborateurs'], ['admin', 'Administration']]
     .filter(([v]) => v !== 'admin' || S.moi?.role === 'admin');
   const lien = ([v, l], court) => `<a href="#${v}"${S.vue === v ? ' aria-current="page"' : ''}>${ICON[v]}${
     court && l === 'Collaborateurs' ? 'Équipe' : l
@@ -402,6 +403,7 @@ export function ficheAppel(S) {
       <button class="btn sm" data-act="rec" data-id="${esc(c.call_id)}"${c.record_link ? '' : ' disabled'}>${ACT.rec}Enregistrement</button>
       <button class="btn sm" data-act="jcontact" data-id="${esc(c.call_id)}"${c.jarvi_profile_id ? '' : ' disabled'}>${ACT.person}Contact Jarvi</button>
       <button class="btn sm" data-act="jcompany" data-id="${esc(c.call_id)}"${c.jarvi_company_id ? '' : ' disabled'}>${ACT.building}Société Jarvi</button>
+      <button class="btn sm" data-act="ouvrirCompte" data-id="${esc(c.call_id)}"${c.jarvi_company_id ? '' : ' disabled'}>${ICON.societes}Voir le compte</button>
     </div>
     <div class="grid2">
       <div><div class="cap">Sens</div>${c.direction === 'in' ? 'Entrant' : 'Sortant'}</div>
@@ -559,6 +561,231 @@ export function vueEquipe(S) {
       <td class="num">${r.f.conversations}</td><td class="num"><b>${r.f.rdv}</b></td><td class="num">${r.total}</td></tr>`).join('')
       || '<tr><td colspan="7" class="empty">Aucun appel cette semaine.</td></tr>'}</tbody></table></div>
   <div class="sect mt"><span class="n">Cliquer sur une ligne ouvre la semaine filtrée sur cette personne.</span></div>`;
+}
+
+// --- Sociétés ---------------------------------------------------------------------
+//
+// Une ligne par couple (société × prospecteur) : un compte partagé apparaît
+// dans la liste de chacun, avec la couverture de chacun. Tous les chiffres
+// viennent de `v_comptes` — rien n'est recalculé ici, pas même le seuil des
+// quatorze jours, que la vue renvoie dans `seuil_jours`.
+
+const ORDRE_CHAUD = ['rdv', 'ouvert', 'porte', 'relance', 'client', 'direct', 'besoin', 'bache'];
+
+export const cleCompte = (c) => `${c.company_id}|${c.prospecteur}`;
+
+const RANG_ETAT = { jamais: 0, vieux: 1, ok: 2 };
+
+export function comptesFiltres(S) {
+  const q = (S.sRech || '').trim().toLowerCase();
+  const parContact = S.sIdsContact || [];
+  let v = (S.comptes || []).filter((c) => S.sPros === 'tous' || c.prospecteur === S.sPros);
+  if (q) {
+    v = v.filter((c) => (c.name || '').toLowerCase().includes(q) || parContact.includes(c.company_id));
+  }
+  if (S.sSit === 'aucune') v = v.filter((c) => !(c.situations || []).length);
+  else if (S.sSit && S.sSit !== 'toutes') v = v.filter((c) => (c.situations || []).includes(S.sSit));
+  if (S.sVue === 'jamais') v = v.filter((c) => c.etat === 'jamais');
+  if (S.sVue === 'vieux') v = v.filter((c) => c.etat === 'vieux');
+  if (S.sVue === 'reste') v = v.filter((c) => c.nb_contacts > c.nb_contacts_appeles_par_proprietaire);
+  if (S.sVue === 'echange') v = v.filter((c) => (c.situations || []).length);
+
+  const clef = {
+    // « À faire en premier » : jamais appelés d'abord, puis les comptes en
+    // retard, et à l'intérieur de chaque groupe le plus de contacts restants.
+    afaire: (c) => [RANG_ETAT[c.etat] ?? 3,
+      -(c.nb_contacts - c.nb_contacts_appeles_par_proprietaire), (c.name || '').toLowerCase()],
+    recent: (c) => [c.dernier_appel_proprietaire_at
+      ? -new Date(c.dernier_appel_proprietaire_at).getTime() : 1e15, (c.name || '').toLowerCase()],
+    nom: (c) => [(c.name || '').toLowerCase()],
+    pros: (c) => [c.prospecteur || '', (c.name || '').toLowerCase()],
+  }[S.sTri] || ((c) => [(c.name || '').toLowerCase()]);
+
+  return v.slice().sort((a, b) => {
+    const x = clef(a);
+    const y = clef(b);
+    for (let i = 0; i < x.length; i += 1) {
+      if (x[i] < y[i]) return -1;
+      if (x[i] > y[i]) return 1;
+    }
+    return 0;
+  });
+}
+
+function pastilleSit(k) {
+  const [libelle, classe] = SITUATIONS[k] || ['—', 'neu'];
+  return `<span class="pill ${classe}">${esc(libelle)}</span>`;
+}
+
+function filAppels(appels) {
+  return `<div class="fil">${appels.map((a) => `<div class="ap">
+    <div class="aptete"><b>${esc(dateFR(jourDe(a.started_at), true))}</b> · ${esc(a.user_name || '—')} · ${
+    a.situation ? pastilleSit(a.situation) : '<span class="pill neu">Pas de décroché</span>'}
+      <button class="lien" data-act="rec" data-id="${esc(a.call_id)}"${a.record_link ? '' : ' disabled'}>Écouter</button></div>
+    ${a.summary ? `<p>${esc(a.summary)}</p>` : ''}
+    ${a.next_step ? `<p class="suite"><b>À faire :</b> ${esc(a.next_step)}</p>` : ''}</div>`).join('')}</div>`;
+}
+
+function ficheCompte(S, c) {
+  const f = S.sFiche || {};
+  const contacts = f.contacts || [];
+  const appels = f.appels || [];
+  const parContact = {};
+  for (const a of appels) {
+    (parContact[a.contact_id] = parContact[a.contact_id] || []).push(a);
+  }
+
+  const lui = contacts.filter((x) => x.appele_par_proprietaire);
+  const autres = contacts.filter((x) => !x.appele_par_proprietaire && x.nb_appels > 0);
+  const jamais = contacts.filter((x) => !x.nb_appels);
+
+  const q = (S.sRechC || '').trim().toLowerCase();
+  const garde = (x) => !q || (x.contact_name || '').toLowerCase().includes(q)
+    || (x.contact_role || '').toLowerCase().includes(q);
+
+  const ligne = (x, classe) => {
+    const siens = parContact[x.contact_id] || [];
+    const j = joursDepuis(x.dernier_appel_at, S.aujourdhui);
+    return `<div class="ct ${classe}">
+      <span class="ctn"><b>${esc(x.contact_name)}</b><em>${esc(x.contact_role || '')}</em></span>
+      <span class="ctd">${x.dernier_appel_at
+    ? `${esc(dateFR(jourDe(x.dernier_appel_at), true))}<small>${esc(ilYa(j))} · ${esc(x.dernier_appel_par || '—')}</small>`
+    : 'jamais<small>appelé</small>'}</span>
+      <span class="ctj"><button class="lien" data-act="jcontactId" data-id="${esc(x.contact_id)}">Fiche Jarvi</button></span>
+      ${siens.length ? filAppels(siens) : ''}</div>`;
+  };
+  const groupe = (titre, liste, classe) => {
+    const l = liste.filter(garde);
+    return l.length ? `<div class="ctg">${esc(titre)} (${l.length})</div>${l.map((x) => ligne(x, classe)).join('')}` : '';
+  };
+  const rien = ![...lui, ...autres, ...jamais].some(garde);
+
+  const jours = c.jours_depuis_dernier_appel;
+  return `<aside class="card detail fcompte open">
+    <div class="detail-head"><div>
+      <div class="cap">Compte de ${esc(c.prospecteur)}</div>
+      <div class="serif title">${esc(c.name)}</div>
+      <div class="qui">${esc(c.sector || 'secteur inconnu')} · ${c.nb_contacts} contact${c.nb_contacts > 1 ? 's' : ''} dans Jarvi</div>
+    </div><button class="btn sm" data-act="fermerCompte" aria-label="fermer">✕</button></div>
+
+    <div class="oue">${c.etat_des_lieux
+    ? `<p>${esc(c.etat_des_lieux)}</p><span class="sig">Où on en est — réécrit par la routine le ${
+      esc(dateFR(jourDe(c.etat_des_lieux_at), true))} à ${esc(heureFR(c.etat_des_lieux_at))}</span>`
+    : '<p class="doux">Pas encore d’état des lieux. La routine du soir en écrira un dès qu’un appel de ce compte aura été résumé.</p>'}</div>
+
+    <div class="trois">
+      <div><b class="${c.etat === 'jamais' ? 'crit' : ''}">${c.nb_contacts_appeles_par_proprietaire}<small>/${c.nb_contacts}</small></b><span>appelés par ${esc(c.prospecteur)}</span></div>
+      <div><b class="${c.etat === 'jamais' ? 'crit' : c.etat === 'vieux' ? 'warn' : ''}">${jours === null || jours === undefined ? '—' : `${jours} j`}</b><span>depuis son dernier appel</span></div>
+      <div><b class="${c.nb_contacts_avec_echange ? '' : 'crit'}">${c.nb_contacts_avec_echange}</b><span>contacts avec un échange</span></div>
+    </div>
+
+    <div class="ctsect">
+      <div class="sect"><h2>Les contacts</h2><span class="n">${jamais.length} jamais appelé${jamais.length > 1 ? 's' : ''}</span></div>
+      <input class="pleine" id="rechC" type="search" placeholder="Filtrer par nom ou fonction…" value="${esc(S.sRechC || '')}" aria-label="Filtrer les contacts">
+      ${f.chargement ? '<div class="empty">Chargement…</div>' : ''}
+      ${groupe(`Appelés par ${c.prospecteur}`, lui, 'ok')}
+      ${groupe('Appelés par quelqu’un d’autre', autres, 'autre')}
+      ${groupe('Jamais appelés', jamais, 'jam')}
+      ${!f.chargement && !contacts.length ? '<div class="empty">Aucun contact rattaché à ce compte dans Jarvi.</div>' : ''}
+      ${!f.chargement && contacts.length && rien ? '<div class="empty">Aucun contact ne correspond.</div>' : ''}
+    </div></aside>`;
+}
+
+export function vueSocietes(S) {
+  const comptes = S.comptes || [];
+  const entete = `<div class="head"><div><div class="cap">Couverture des comptes</div>
+    <h1>Sociétés</h1>
+    <div class="sub">Une ligne par compte et par prospecteur. Les chiffres ne comptent que les appels du propriétaire du compte.</div></div></div>`;
+
+  if (!comptes.length) {
+    return `${entete}<div class="card empty">${S.chargement
+      ? 'Chargement…'
+      : 'Aucune société synchronisée depuis Jarvi pour l’instant. La synchronisation avance par tranches toutes les quinze minutes ; l’écran Administration dit où elle en est.'}</div>`;
+  }
+
+  // Tous les responsables d'un compte, pour la colonne « Prospecteur » : la
+  // ligne montre le sien, la mention en dessous dit avec qui il le partage.
+  const proprietaires = {};
+  for (const c of comptes) {
+    (proprietaires[c.company_id] = proprietaires[c.company_id] || []).push(c.prospecteur);
+  }
+  const prospecteurs = [...new Set(comptes.map((c) => c.prospecteur))].sort();
+  const seuil = comptes[0].seuil_jours ?? 14;
+
+  // Base des compteurs : le filtre prospecteur, mais pas les autres — sinon
+  // les pastilles et le bandeau afficheraient le résultat de leur propre
+  // filtre, et un chiffre à zéro deviendrait impossible à rouvrir.
+  const base = comptes.filter((c) => S.sPros === 'tous' || c.prospecteur === S.sPros);
+  const societesDe = (liste) => new Set(liste.map((c) => c.company_id)).size;
+  const avecSit = (k) => base.filter((c) => (k === 'aucune'
+    ? !(c.situations || []).length : (c.situations || []).includes(k)));
+
+  const pastille = (k, libelle, classe, n) => `<button class="schip" data-ssit="${k}" aria-pressed="${(S.sSit || 'toutes') === k}"${
+    n === 0 ? ' disabled' : ''}>${classe ? `<i class="sdot ${classe}"></i>` : ''}${esc(libelle)}${
+    n === null ? '' : `<b class="num">${n}</b>`}</button>`;
+
+  const outils = `<div class="chips soc">
+      <span class="cap">Comptes de</span>
+      <button class="chip" data-spros="tous" aria-pressed="${S.sPros === 'tous'}">Toute l'équipe</button>
+      ${prospecteurs.map((p) => `<button class="chip" data-spros="${esc(p)}" aria-pressed="${S.sPros === p}">${esc(p)}</button>`).join('')}
+      <input class="rech" id="rechSoc" type="search" placeholder="Société ou contact…" value="${esc(S.sRech || '')}" aria-label="Rechercher une société ou un contact">
+    </div>
+    <div class="schips soc">
+      <span class="cap">Situation</span>
+      ${pastille('toutes', 'Toutes', '', null)}
+      ${ORDRE_CHAUD.map((k) => pastille(k, SITUATIONS[k][0], SITUATIONS[k][1], societesDe(avecSit(k)))).join('')}
+      ${pastille('aucune', 'Aucun échange', 'neu', societesDe(avecSit('aucune')))}
+    </div>`;
+
+  // « Comptes attribués » et « comptes avec un échange » comptent des
+  // sociétés : un compte partagé ne vaut qu'une fois. « Jamais contactés » et
+  // « sans appel depuis N j » comptent au contraire des situations à traiter —
+  // si Martin n'a jamais appelé un compte que Rémy a travaillé, c'est bien un
+  // trou dans le travail de Martin.
+  const jamais = base.filter((c) => c.etat === 'jamais').length;
+  const vieux = base.filter((c) => c.etat === 'vieux').length;
+  const reste = base.reduce((n, c) => n + (c.nb_contacts - c.nb_contacts_appeles_par_proprietaire), 0);
+  const echange = societesDe(base.filter((c) => (c.situations || []).length));
+  const chiffre = (k, classe, n, l) => `<button class="chiffre ${classe}" data-svue="${k}" aria-pressed="${(S.sVue || 'tous') === k}"><b class="num">${n}</b><span>${esc(l)}</span></button>`;
+  const bandeau = `<div class="chiffres">${
+    chiffre('tous', '', societesDe(base), 'comptes attribués')
+  }${chiffre('jamais', 'alerte', jamais, 'jamais contactés par leur prospecteur')
+  }${chiffre('vieux', 'tiede', vieux, `sans appel depuis ${seuil} j et plus`)
+  }${chiffre('reste', '', reste, 'contacts jamais appelés')
+  }${chiffre('echange', 'bien', echange, 'comptes avec un échange')}</div>`;
+
+  const visibles = comptesFiltres(S);
+  const choisi = visibles.find((c) => cleCompte(c) === S.sCompte)
+    || comptes.find((c) => cleCompte(c) === S.sCompte);
+
+  const entetes = (k, libelle) => `<th><button class="tri" data-stri="${k}"${S.sTri === k ? ' aria-sort="descending"' : ''}>${esc(libelle)}</button></th>`;
+  const lignes = visibles.map((c) => {
+    const pris = c.nb_contacts_appeles_par_proprietaire;
+    const total = c.nb_contacts;
+    const pct = total ? Math.round((pris / total) * 100) : 0;
+    const j = joursDepuis(c.dernier_appel_proprietaire_at, S.aujourdhui);
+    const partage = (proprietaires[c.company_id] || []).filter((p) => p !== c.prospecteur);
+    return `<tr class="row${S.sCompte === cleCompte(c) ? ' sel' : ''}" data-scompte="${esc(cleCompte(c))}" tabindex="0">
+      <td><span class="serif nomc">${esc(c.name)}</span><span class="s">${esc(c.sector || '—')}</span>
+        ${c.etat_des_lieux ? `<span class="edl" title="${esc(c.etat_des_lieux)}">${esc(c.etat_des_lieux)}</span>` : ''}</td>
+      <td class="nowrap">${esc(c.prospecteur)}${partage.length ? `<span class="s">aussi ${esc(partage.join(', '))}</span>` : ''}</td>
+      <td><span class="jauge${pris ? '' : ' vide'}"><i data-pct="${pris ? pct : 100}"></i></span>
+        <span class="s num"><b>${pris}</b>/${total} contacts appelés</span></td>
+      <td class="nowrap"><span class="quand ${c.etat}">${c.dernier_appel_proprietaire_at
+    ? `<b>${esc(ilYa(j))}</b><span class="par num">${esc(dateFR(jourDe(c.dernier_appel_proprietaire_at), true))}</span>`
+    : `<b>jamais</b>${c.dernier_appel_at
+      ? `<span class="par">${esc(c.dernier_appel_par || 'quelqu’un')} y est allé le ${esc(dateFR(jourDe(c.dernier_appel_at), true))}</span>`
+      : ''}`}</span></td>
+      <td>${c.situation_chaude ? pastilleSit(c.situation_chaude) : '<span class="s">—</span>'}</td></tr>`;
+  }).join('');
+
+  return `${entete}${outils}${bandeau}
+  <div class="split${choisi ? '' : ' nosel'}"><section>
+    <div class="card"><div class="tbl"><table class="soct"><thead><tr>
+      ${entetes('nom', 'Compte')}${entetes('pros', 'Prospecteur')}${entetes('afaire', 'Contacts appelés')}${entetes('recent', 'Dernier appel du prospecteur')}<th>Situation</th>
+    </tr></thead><tbody>${lignes || '<tr><td colspan="5" class="empty">Aucun compte ne correspond.</td></tr>'}</tbody></table></div></div>
+  </section>${choisi ? ficheCompte(S, choisi) : ''}</div>
+  <div class="backdrop${choisi ? ' open' : ''}" data-act="fermerCompte"></div>`;
 }
 
 // --- Administration -------------------------------------------------------------------

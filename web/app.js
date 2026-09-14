@@ -11,7 +11,9 @@ import {
   ajouterJours, aujourdhui, dateFR, esc, joursOuvres, joursSemaine, lundiDe, versCSV,
 } from './format.js';
 import {
+  cleCompte, comptesFiltres,
   coquille, vueAdmin, vueConnexion, vueEquipe, vueJour, vueQualifier, vueRefus, vueSemaine,
+  vueSocietes,
 } from './vues.js';
 
 const racine = document.getElementById('app');
@@ -45,6 +47,19 @@ const S = {
   montrerAutres: false,
   notes: {},
   reportes: new Set(),
+
+  // Page Sociétés. `sIdsContact` est le résultat de la recherche par nom de
+  // contact, faite côté serveur : `null` tant qu'aucune n'a été lancée.
+  comptes: [],
+  sPros: 'tous',
+  sRech: '',
+  sIdsContact: null,
+  sSit: 'toutes',
+  sVue: 'tous',
+  sTri: 'afaire',
+  sCompte: null,
+  sRechC: '',
+  sFiche: { cle: null, contacts: [], appels: [], chargement: false },
 
   appels: [],
   appelsPrecedents: [],
@@ -100,7 +115,7 @@ function echec(quoi, erreur) {
 
 // --- Routage -------------------------------------------------------------------
 
-const VUES = ['jour', 'semaine', 'qualifier', 'equipe', 'admin'];
+const VUES = ['jour', 'semaine', 'societes', 'qualifier', 'equipe', 'admin'];
 
 function lireAdresse() {
   const brut = location.hash.slice(1);
@@ -158,6 +173,12 @@ async function charger() {
       // dans la fiche appel sans avoir à recharger quoi que ce soit.
       S.appels = S.aQualifier;
       fileChargee = true;
+    } else if (S.vue === 'societes') {
+      // Une seule requête : la vue renvoie déjà tout ce que le tableau
+      // affiche. Les contacts et les appels d'un compte ne sont chargés qu'à
+      // l'ouverture de sa fiche — il y en a plusieurs milliers en tout.
+      S.comptes = await api.comptes();
+      S.appels = [];
     } else if (S.vue === 'admin') {
       const [membres, lignes, taches, sansTranscription] = await Promise.all([
         api.tousLesMembres(), api.toutesLesLignes(), api.passagesTaches(),
@@ -234,7 +255,8 @@ function rendre() {
         <button class="btn sm" data-act="recharger">Réessayer</button></div>`
     : '';
   const corps = {
-    jour: vueJour, semaine: vueSemaine, qualifier: vueQualifier, equipe: vueEquipe, admin: vueAdmin,
+    jour: vueJour, semaine: vueSemaine, societes: vueSocietes, qualifier: vueQualifier,
+    equipe: vueEquipe, admin: vueAdmin,
   }[S.vue](S);
   racine.innerHTML = coquille(S, bandeau + corps, VERSION);
   poserDimensions();
@@ -248,6 +270,7 @@ function poserDimensions() {
   racine.querySelectorAll('[data-flex]').forEach((n) => { n.style.flex = n.dataset.flex; });
   racine.querySelectorAll('[data-h]').forEach((n) => { n.style.height = `${n.dataset.h}%`; });
   racine.querySelectorAll('[data-w]').forEach((n) => { n.style.width = `${n.dataset.w}px`; });
+  racine.querySelectorAll('[data-pct]').forEach((n) => { n.style.width = `${n.dataset.pct}%`; });
 }
 
 // --- Branchement des événements ---------------------------------------------------
@@ -326,6 +349,36 @@ function brancher() {
     aller('jour');
   });
   sur('[data-equipe]', 'click', (e) => { S.qui = e.currentTarget.dataset.equipe; aller('semaine'); });
+  sur('[data-spros]', 'click', (e) => {
+    S.sPros = e.currentTarget.dataset.spros;
+    oublierCompteInvisible();
+    rendre();
+  });
+  sur('[data-ssit]', 'click', (e) => {
+    const v = e.currentTarget.dataset.ssit;
+    S.sSit = S.sSit === v ? 'toutes' : v;
+    oublierCompteInvisible();
+    rendre();
+  });
+  sur('[data-svue]', 'click', (e) => {
+    const v = e.currentTarget.dataset.svue;
+    S.sVue = S.sVue === v ? 'tous' : v;
+    oublierCompteInvisible();
+    rendre();
+  });
+  sur('[data-stri]', 'click', (e) => { S.sTri = e.currentTarget.dataset.stri; rendre(); });
+  sur('[data-scompte]', 'click', (e) => choisirCompte(e.currentTarget.dataset.scompte));
+  sur('[data-scompte]', 'keydown', (e) => {
+    if (e.key === 'Enter') choisirCompte(e.currentTarget.dataset.scompte);
+  });
+  sur('#rechSoc', 'input', (e) => chercherSocietes(e.target));
+  sur('#rechC', 'input', (e) => {
+    S.sRechC = e.target.value;
+    const p = e.target.selectionStart;
+    rendre();
+    const i = document.getElementById('rechC');
+    if (i) { i.focus(); i.setSelectionRange(p, p); }
+  });
   sur('[data-sel]', 'click', (e) => selectionner(e.currentTarget.dataset.sel));
   sur('[data-sel]', 'keydown', (e) => {
     if (e.key === 'Enter') selectionner(e.currentTarget.dataset.sel);
@@ -366,6 +419,69 @@ function brancher() {
   });
   sur('#code', 'keydown', (e) => { if (e.key === 'Enter') agir(S.etapeConnexion === 'mfa' ? 'mfa-verifier' : 'mfa-inscrire'); });
   sur('#em', 'keydown', (e) => { if (e.key === 'Enter') agir('lien'); });
+}
+
+// --- Sociétés ---------------------------------------------------------------------
+
+// Un filtre qui vide la sélection ne doit pas laisser une fiche ouverte sur un
+// compte devenu invisible : l'écran dirait le contraire du tableau.
+function oublierCompteInvisible() {
+  if (!S.sCompte) return;
+  if (!comptesFiltres(S).some((c) => cleCompte(c) === S.sCompte)) S.sCompte = null;
+}
+
+async function choisirCompte(cle) {
+  if (S.sCompte === cle) {
+    S.sCompte = null;
+    rendre();
+    return;
+  }
+  S.sCompte = cle;
+  S.sRechC = '';
+  const [companyId, prospecteur] = String(cle).split('|');
+  S.sFiche = { cle, contacts: [], appels: [], chargement: true };
+  rendre();
+  try {
+    const [contacts, appels] = await Promise.all([
+      api.contactsDuCompte(companyId, prospecteur),
+      api.appelsDuCompte(companyId),
+    ]);
+    // Un clic rapide sur un autre compte pendant le chargement : la réponse
+    // qui arrive n'est plus celle qu'on regarde.
+    if (S.sCompte !== cle) return;
+    S.sFiche = { cle, contacts, appels, chargement: false };
+  } catch (erreur) {
+    console.error('fiche compte', erreur);
+    if (S.sCompte === cle) S.sFiche = { cle, contacts: [], appels: [], chargement: false };
+    toast('Le détail de ce compte n’a pas pu être chargé.');
+  }
+  rendre();
+}
+
+// La recherche porte sur le nom de société (côté navigateur, immédiat) et sur
+// les noms de contacts (côté serveur, il y en a trop pour les charger tous).
+let rechercheEnCours = 0;
+async function chercherSocietes(champ) {
+  S.sRech = champ.value;
+  const position = champ.selectionStart;
+  rendre();
+  const i = document.getElementById('rechSoc');
+  if (i) { i.focus(); i.setSelectionRange(position, position); }
+
+  const texte = S.sRech;
+  const jeton = ++rechercheEnCours;
+  try {
+    const ids = await api.comptesAyantUnContact(texte);
+    // Seule la dernière frappe compte : une réponse en retard ne doit pas
+    // écraser le résultat d'une recherche plus récente.
+    if (jeton !== rechercheEnCours || S.sRech !== texte) return;
+    S.sIdsContact = ids;
+    rendre();
+    const j = document.getElementById('rechSoc');
+    if (j) { j.focus(); j.setSelectionRange(position, position); }
+  } catch (erreur) {
+    console.error('recherche contacts', erreur);
+  }
 }
 
 function appelSelectionne() {
@@ -464,7 +580,14 @@ async function basculerMembre(userId) {
 
 async function agir(action, bouton) {
   const id = bouton?.dataset.id;
-  const appel = id ? (S.appels.find((c) => c.call_id === id) || S.aQualifier.find((c) => c.call_id === id)) : null;
+  // Le troisième endroit est le fil d'appels d'une fiche société : les mêmes
+  // boutons « Écouter » y servent, sur des lignes qui ne sont pas dans
+  // l'écran du jour.
+  const appel = id
+    ? (S.appels.find((c) => c.call_id === id)
+      || S.aQualifier.find((c) => c.call_id === id)
+      || (S.sFiche.appels || []).find((c) => c.call_id === id))
+    : null;
 
   switch (action) {
     case 'lien': {
@@ -549,7 +672,10 @@ async function agir(action, bouton) {
 
     case 'rec': {
       if (!appel?.record_link) return;
-      modale(`<h2>Enregistrement · ${esc(appel.company_name || appel.contact_name || 'appel')}</h2>
+      const societe = appel.company_name
+        || (S.sCompte ? S.comptes.find((c) => cleCompte(c) === S.sCompte)?.name : '')
+        || appel.contact_name || 'appel';
+      modale(`<h2>Enregistrement · ${esc(societe)}</h2>
         <p>${esc(dateFR(appel.day, true))} · ${esc(appel.user_name || '')}. L'audio n'est jamais copié dans cette application : il s'ouvre chez Ringover, avec votre propre compte, et l'écoute est journalisée.</p>
         <div class="fin"><button class="btn" data-act="fermerModale">Annuler</button>
         <button class="btn primary" data-act="ouvrirEnregistrement" data-id="${esc(appel.call_id)}">Ouvrir chez Ringover</button></div>`);
@@ -563,6 +689,40 @@ async function agir(action, bouton) {
       window.open(appel.record_link, '_blank', 'noopener');
       return;
     }
+    case 'fermerCompte':
+      S.sCompte = null;
+      S.sRechC = '';
+      rendre();
+      return;
+    // Depuis la page du jour : ouvrir le compte de la société de cet appel.
+    // La ligne choisie est celle du prospecteur affiché, sinon la première.
+    case 'ouvrirCompte': {
+      const societe = appel?.jarvi_company_id;
+      if (!societe) return;
+      if (S.vue !== 'societes') {
+        S.vue = 'societes';
+        history.replaceState(null, '', '#societes');
+        await charger();
+      }
+      const ligne = S.comptes.find((c) => c.company_id === societe && c.prospecteur === appel.user_name)
+        || S.comptes.find((c) => c.company_id === societe);
+      if (!ligne) {
+        toast('Cette société n’est pas encore synchronisée depuis Jarvi.');
+        return;
+      }
+      S.sPros = 'tous';
+      S.sSit = 'toutes';
+      S.sVue = 'tous';
+      S.sRech = '';
+      S.sIdsContact = null;
+      await choisirCompte(cleCompte(ligne));
+      return;
+    }
+    case 'jcontactId':
+      if (id) {
+        window.open(`https://app.jarvi.tech/#/crm/profiles/${encodeURIComponent(id)}`, '_blank', 'noopener');
+      }
+      return;
     case 'jcontact':
       if (appel?.jarvi_profile_id) {
         window.open(`https://app.jarvi.tech/#/crm/profiles/${encodeURIComponent(appel.jarvi_profile_id)}`, '_blank', 'noopener');
@@ -858,6 +1018,12 @@ document.addEventListener('keydown', (e) => {
   }
   if (S.sel) {
     S.sel = null;
+    rendre();
+    return;
+  }
+  if (S.sCompte) {
+    S.sCompte = null;
+    S.sRechC = '';
     rendre();
   }
 });
