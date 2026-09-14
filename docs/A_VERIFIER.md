@@ -7,7 +7,7 @@
 | 3 | Paramètres exacts de `GET /v2/calls` (dates, pagination `last_id_call`, `limit_count`) | https://developer.ringover.com/ + un appel réel | ✅ **résolu le 4 septembre 2026** — trois noms de `SPECS.md` étaient faux : voir `docs/ringover-api.md` |
 | 4 | API Modjo : lister les appels par fenêtre de temps et numéro ; récupérer transcription et résumé | https://api.modjo.ai/v2/docs + un appel réel avec la clé `modjo` | ⤳ **déplacé** : plus aucun code serveur n'appelle Modjo, c'est la tâche Claude planifiée qui s'en charge par son connecteur (décision D1) |
 | 5 | Format `phoneNumbers[].canonicalNumber` renvoyé par Jarvi (E.164 ?) | un `GET /rest/v2/profiles?where=…` sur un contact connu | ⚠️ **contourné** — le code ne suppose plus aucun format : voir « Rapprochement des numéros » ci-dessous. À confirmer au premier vrai classement. |
-| 6 | Forme exacte de `GET /rest/v2/companies` dans l'API publique Jarvi : `assignees` y est-il exposé, et `where` accepte-t-il un filtre sur une relation ? | `GET /functions/v1/jarvi-sync?mode=sonde` avec la clé réelle | ⚠️ **ouvert** — voir « La sonde de `jarvi-sync` » ci-dessous |
+| 6 | Forme exacte de `GET /rest/v2/companies` dans l'API publique Jarvi : `assignees` y est-il exposé, et `where` accepte-t-il un filtre sur une relation ? | `GET /functions/v1/jarvi-sync?mode=sonde` avec la clé réelle | ✅ **résolu le 14 septembre 2026** — `assignees` est exposé, le filtre passe. Voir ci-dessous. Reste en suspens : le **secteur**. |
 
 ## La sonde de `jarvi-sync` (ligne 6)
 
@@ -34,6 +34,29 @@ sans prospecteur reconnu, elle n'écrit aucune ligne.
 Si `where` refuse le filtre sur `assignees`, le repli est déjà en place :
 lire toutes les sociétés et filtrer dans la fonction — c'est déjà ce que fait
 `lireSociete`, le filtre serveur n'est qu'une économie de bande passante.
+
+### Ce que la sonde a répondu (14 septembre 2026)
+
+> « Jarvi répond correctement : 3 société(s) lue(s), responsable reconnu sur
+> aucune des trois — elles sont sans doute à Alexandre ou Julien, secteur
+> absent. »
+
+Deux réponses dans cette phrase, qu'il faut lire séparément :
+
+- **`assignees` est bien exposé par l'API publique.** Le message « sans le
+  responsable des sociétés » n'est pas apparu, et le même passage de
+  synchronisation a retenu **43 sociétés et 419 contacts** — ce qui serait
+  impossible sans responsable reconnu. Le point qui bloquait tout le lot est
+  levé. Les trois sociétés de l'échantillon appartiennent simplement à
+  Alexandre ou Julien, et sont donc écartées : comportement voulu (D9).
+- **Le secteur, lui, n'a pas été lu.** Deux explications possibles et pas
+  encore départagées : soit ces trois sociétés-là n'ont pas de secteur
+  renseigné dans Jarvi, soit `fieldsValues` ne remonte pas dans l'API
+  publique. Sans conséquence sur les chiffres — le secteur n'est qu'une
+  ligne d'affichage sous le nom du compte. Se tranche à l'œil : si la colonne
+  « Compte » de la page Sociétés affiche « — » sous **toutes** les sociétés,
+  c'est le champ qui manque ; s'il y en a quelques-unes de renseignées, c'est
+  l'échantillon qui était mal tombé.
 
 ## Rapprochement des numéros (ligne 5)
 
