@@ -682,6 +682,32 @@ async function agir(action, bouton) {
       } catch (erreur) { echec('Rattrapage impossible', erreur); }
       return;
     }
+    case 'synchroniserJarvi': {
+      toast('Synchronisation d’une tranche de sociétés…');
+      try {
+        const bilan = await api.synchroniserJarvi();
+        const retenues = Number(bilan?.societes_retenues ?? 0);
+        toast(retenues
+          ? `${retenues} société(s) et ${Number(bilan.contacts_lus ?? 0)} contact(s) mis à jour${bilan.tour_boucle ? ' — tour complet bouclé.' : '.'}`
+          : 'Aucune société retenue sur cette tranche. Si cela se répète, utilisez « Vérifier ce que Jarvi répond ».');
+        await charger();
+      } catch (erreur) { echec('Synchronisation impossible', erreur); }
+      return;
+    }
+    case 'sonderJarvi':
+      try {
+        const sonde = await api.sonderJarvi();
+        // Une phrase, pas un objet : cet écran s'adresse à quelqu'un qui veut
+        // savoir si ça marche, pas lire une réponse d'API.
+        S.admin.sonde = sonde?.etat !== 'ok'
+          ? `Jarvi ne répond pas (${sonde?.motif || 'raison inconnue'}).`
+          : !sonde.assignees_present
+            ? 'Jarvi répond, mais sans le responsable des sociétés : la page Sociétés restera vide. C’est le point à corriger.'
+            : `Jarvi répond correctement : ${sonde.recues} société(s) lue(s), responsable reconnu${
+              sonde.prospecteurs_reconnus?.length ? ` (${sonde.prospecteurs_reconnus.join(', ')})` : ' sur aucune des trois — elles sont sans doute à Alexandre ou Julien'}, secteur ${sonde.secteur_lu ? 'lu' : 'absent'}.`;
+        rendre();
+      } catch (erreur) { echec('Vérification impossible', erreur); }
+      return;
     case 'reintegrer': {
       if (!id) return;
       try {

@@ -570,6 +570,8 @@ export function vueAdmin(S) {
   const resumes = a.taches?.resumes;
   const reconcile = a.taches?.reconcile;
   const transcripts = a.taches?.transcripts;
+  const sync = a.taches?.jarvi_sync;
+  const erreursSync = Array.isArray(sync?.detail?.erreurs) ? sync.detail.erreurs : [];
   const invalides = Number(a.sante?.signatures_invalides_7j ?? 0);
 
   return `<div class="head"><div><h1>Administration</h1>
@@ -607,7 +609,19 @@ export function vueAdmin(S) {
         <button class="btn sm" data-act="reconcilier">${jourIncomplet ? `Relancer la réconciliation du ${dateFR(jourIncomplet.day, true)}` : 'Relancer la réconciliation d’hier'}</button>
         <button class="btn sm" data-act="testerWebhook">Tester la collecte</button>
         <button class="btn sm" data-act="rattraper">Rattraper les 5 derniers jours</button></div>
-      <div class="note">Une tâche qui s'arrête ne prévient personne : ces trois dates sont le seul moyen de voir qu'elle tourne encore.</div></section>
+      <div class="note">Une tâche qui s'arrête ne prévient personne : ces dates sont le seul moyen de voir qu'elle tourne encore.</div></section>
+
+    <section class="card"><h2>Sociétés et contacts Jarvi</h2>
+      <div class="intro">La page Sociétés travaille sur une copie de Jarvi, rafraîchie par tranches toutes les quinze minutes. Un tour complet prend quelques heures, puis recommence : une société créée ce matin arrive dans l'après-midi.</div>
+      <div class="etats">
+        <span><span class="led${sync ? '' : ' warn'}"></span> Synchronisation Jarvi · ${sync ? `dernier passage ${quand(sync.ran_at)}` : 'jamais exécutée'}${
+          sync?.detail ? ` · <b>${Number(sync.detail.societes_retenues ?? 0)}</b> société(s) et <b>${Number(sync.detail.contacts_lus ?? 0)}</b> contact(s) au dernier passage` : ''}</span>
+        <span><span class="led${erreursSync.length ? ' crit' : ''}"></span> ${erreursSync.length ? `Dernières erreurs : ${esc(erreursSync.join(', '))}` : 'Aucune erreur au dernier passage'}</span></div>
+      <div class="row2">
+        <button class="btn sm" data-act="synchroniserJarvi">Resynchroniser Jarvi</button>
+        <button class="btn sm" data-act="sonderJarvi">Vérifier ce que Jarvi répond</button></div>
+      ${a.sonde ? `<div class="note"><b>${esc(a.sonde)}</b></div>` : ''}
+      <div class="note">« Vérifier ce que Jarvi répond » ne modifie rien : il lit trois sociétés et dit si le responsable et le secteur arrivent bien jusqu'ici. À utiliser si la page Sociétés reste vide sans raison apparente.</div></section>
 
     <section class="card"><h2>Écartés du rapport</h2>
       <div class="intro">Des appels que la routine a jugés sans rapport avec la prospection — une discussion interne, un rappel personnel, un échange sans contenu commercial. Ils ne comptent nulle part. Si l'un d'eux n'aurait pas dû sortir, remettez-le.</div>

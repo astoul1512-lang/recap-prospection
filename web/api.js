@@ -284,6 +284,13 @@ export const santeCollecte = () => fonctionAdmin('admin/webhook-test', {});
 export const relancerReconciliation = (jour) => fonctionAdmin(jour ? `reconcile?day=${jour}` : 'reconcile', {});
 // Rattrapage : reprend les N journées précédant hier, en une seule fois.
 export const rattraper = (jours) => fonctionAdmin(`reconcile?jours=${jours}`, {});
+// Une tranche de sociétés, la suivante dans le tour. Le bouton ne
+// « resynchronise pas tout » — 665 comptes ne tiennent pas dans une
+// exécution — il avance d'un cran, comme la tâche planifiée.
+export const synchroniserJarvi = () => fonctionAdmin('jarvi-sync', {});
+// La sonde lit trois sociétés et n'écrit rien : elle dit si l'API publique de
+// Jarvi expose bien le responsable et le secteur (docs/A_VERIFIER.md n°6).
+export const sonderJarvi = () => fonctionAdmin('jarvi-sync?mode=sonde', {});
 
 export async function changerRole(userId, role) {
   const { error } = await db().from('app_users').update({ role }).eq('id', userId);
