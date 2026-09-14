@@ -855,18 +855,31 @@ async function agir(action, bouton) {
       return;
     }
     case 'sonderJarvi':
+      // La réponse est presque toujours la même d'une fois sur l'autre : sans
+      // ces deux repères — le message pendant l'attente, l'heure sur la
+      // réponse — le bouton a l'air de ne rien faire, et on ne sait pas si on
+      // lit la réponse d'aujourd'hui ou celle d'hier.
+      S.admin.sonde = '';
+      toast('Lecture de trois sociétés dans Jarvi…');
+      rendre();
       try {
         const sonde = await api.sonderJarvi();
         // Une phrase, pas un objet : cet écran s'adresse à quelqu'un qui veut
         // savoir si ça marche, pas lire une réponse d'API.
-        S.admin.sonde = sonde?.etat !== 'ok'
+        const phrase = sonde?.etat !== 'ok'
           ? `Jarvi ne répond pas (${sonde?.motif || 'raison inconnue'}).`
           : !sonde.assignees_present
             ? 'Jarvi répond, mais sans le responsable des sociétés : la page Sociétés restera vide. C’est le point à corriger.'
             : `Jarvi répond correctement : ${sonde.recues} société(s) lue(s), responsable reconnu${
               sonde.prospecteurs_reconnus?.length ? ` (${sonde.prospecteurs_reconnus.join(', ')})` : ' sur aucune des trois — elles sont sans doute à Alexandre ou Julien'}, secteur ${sonde.secteur_lu ? 'lu' : 'absent'}.`;
+        S.admin.sonde = `${phrase} (vérifié à ${new Intl.DateTimeFormat('fr-FR', { timeZone: 'Europe/Paris', hour: '2-digit', minute: '2-digit', second: '2-digit' }).format(new Date())})`;
+        toast(sonde?.etat === 'ok' ? 'Jarvi a répondu — voir la phrase sous les boutons.' : 'Jarvi n’a pas répondu.');
         rendre();
-      } catch (erreur) { echec('Vérification impossible', erreur); }
+      } catch (erreur) {
+        S.admin.sonde = '';
+        echec('Vérification impossible', erreur);
+        rendre();
+      }
       return;
     case 'reintegrer': {
       if (!id) return;
